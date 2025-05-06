@@ -4,11 +4,6 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import os from "os";
 
-/**
- * Execute Python code and return the result
- * @param {string} code - Python code to execute
- * @returns {Promise<Object>} Result object with shape and output
- */
 const executePython = async (code) => {
   // Create a temporary directory for code execution
   const tempDir = path.join(os.tmpdir(), "voxelcode", uuidv4());
@@ -19,8 +14,7 @@ const executePython = async (code) => {
 
   try {
     // Wrap the user code to capture the output
-    const wrappedCode = code;
-    fs.writeFileSync(pythonFile, wrappedCode);
+    fs.writeFileSync(pythonFile, code);
 
     // Execute the Python code
     const startTime = Date.now();
@@ -28,11 +22,14 @@ const executePython = async (code) => {
     const executionTime = Date.now() - startTime;
 
     // Parse the output to get the shape
-    const shape = parsePythonOutput(result.stdout);
+    const rawOutput = result.stdout;
+    const matrix = rawOutput
+      .trim()
+      .split(/\r?\n/)
+      .map(line => line.trim().split(/\s+/).map(Number));
 
     return {
-      shape,
-      output: result.stdout,
+      output: matrix,
       error: result.stderr,
       executionTime,
     };
@@ -50,12 +47,9 @@ const executePython = async (code) => {
   }
 };
 
-/**
- * Run a Python process and capture stdout/stderr
- */
 function runPythonProcess(filePath) {
   return new Promise((resolve, reject) => {
-    const python = spawn("python", [filePath]);
+    const python = spawn("py", [filePath]);
 
     let stdout = "";
     let stderr = "";
@@ -86,26 +80,6 @@ function runPythonProcess(filePath) {
       clearTimeout(timeout);
     });
   });
-}
-
-/**
- * Parse Python output to extract the shape
- */
-function parsePythonOutput(output) {
-  try {
-    const resultMatch = output.match(
-      /VOXELCODE_RESULT_BEGIN\n([\s\S]*?)\nVOXELCODE_RESULT_END/
-    );
-
-    if (resultMatch && resultMatch[1]) {
-      return JSON.parse(resultMatch[1]);
-    }
-
-    throw new Error("Could not parse Python output");
-  } catch (error) {
-    console.error("Error parsing Python output:", error);
-    throw new Error(`Failed to parse Python output: ${error.message}`);
-  }
 }
 
 export default {
