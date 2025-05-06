@@ -1,21 +1,21 @@
 import pythonRunner from "../utils/pythonRunner.js"
 import cppRunner from "../utils/cppRunner.js"
+import shapeController from "./shape.controller.js"
+import scoreController from "./score.controller.js"
 
 const executeCode = async (req, res, next) => {
   try {
-    const { code, language } = req.body
+    const { code, language, targetId } = req.body
 
-    if (!code) {
-      return res.status(400).json({ error: true, message: "Code is required" })
+    if (!code || !language || !targetId) {
+      return res.status(400).json({
+        error: true,
+        message: "Code, language, and targetId are required",
+      })
     }
 
-    if (!language || !["python", "cpp"].includes(language.toLowerCase())) {
-      return res.status(400).json({ error: true, message: "Valid language (python or cpp) is required" })
-    }
-
+    // execute the code based on the language
     let result
-
-    // Execute code based on language
     if (language.toLowerCase() === "python") {
       result = await pythonRunner.executePython(code)
     } else {
@@ -26,15 +26,42 @@ const executeCode = async (req, res, next) => {
     if (!result || !result.output) {
       return res.status(400).json({
         error: true,
-        message: "Code execution did not produce a valid shape",
+        message: "Code execution failed",
         output: result.output || "No output",
       })
     }
 
+    // calculate the similarity score
+    const targetShape = await shapeController.getMatrixById(targetId)
+
+    if (!targetShape) {
+      return res.status(404).json({
+        error: true,
+        message: "Target shape not found",
+      })
+    }
+
+    const outputShape = result.output
+
+    // check if two shapes are valid
+    const isValid = scoreController.checkShapesValidity(
+      targetShape,
+      outputShape
+    )
+
+    let similarity = 0
+    if (isValid) {
+      similarity = scoreController.calculateSimilarity(
+        targetShape,
+        outputShape
+      )
+    }
+
     res.json({
       success: true,
-      shape: result.shape,
+      message: isValid ? "Code executed successfully" : "Invalid shape",
       output: result.output,
+      similarity: parseFloat(similarity.toFixed(2)), // e.g., 87.50
       executionTime: result.executionTime,
     })
   } catch (error) {

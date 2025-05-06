@@ -75,4 +75,20 @@ const getAllShapes = async (req, res) => {
   }
 };
 
-export default { getShapeById, getAllShapes };
+function getMatrixById(id) {
+  const filePath = path.join(__dirname, "../data/shapes/shape" + id + ".txt");
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const content = fs.readFileSync(filePath, "utf8").trim().split("\n");
+  const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number));
+  return matrix;
+}
+
+export default { 
+  getShapeById, 
+  getAllShapes, 
+  getMatrixById
+};
