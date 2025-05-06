@@ -3,39 +3,44 @@
  */
 
 // Python code template
-export const PYTHON_TEMPLATE = `# Write your code here
-# Example (Python):
+export const PYTHON_TEMPLATE = `def generate_shape():
+    grid = [[0 for _ in range(5)] for _ in range(5)]
+    for i in range(5):
+        grid[i][i] = 1
 
-def generate_shape():
-    # Create a 10x10 grid with all empty voxels
-    grid = [[0 for _ in range(10)] for _ in range(10)]
-    
-    # Add some colored voxels
-    grid[3][3] = 1  # Red voxel at (3,3)
-    grid[3][4] = 2  # Blue voxel at (3,4)
-    grid[4][3] = 3  # Green voxel at (4,3)
-    grid[4][4] = 4  # Yellow voxel at (4,4)
-    
     return grid
+
+def main():
+    shape = generate_shape()
+    for row in shape:
+        print(' '.join(map(str, row)))
+
+if __name__ == "__main__":
+    main()
 `
 
 // C++ code template
-export const CPP_TEMPLATE = `// Write your code here
-// Example (C++):
-
+export const CPP_TEMPLATE = `#include <iostream>
 #include <vector>
+using namespace std;
 
-std::vector<std::vector<int>> generateShape() {
-    // Create a 10x10 grid with all empty voxels (value 0)
-    std::vector<std::vector<int>> grid(10, std::vector<int>(10, 0));
-
-    // Add some colored voxels
-    grid[3][3] = 1; // Red voxel at (3,3)
-    grid[3][4] = 2; // Blue voxel at (3,4)
-    grid[4][3] = 3; // Green voxel at (4,3)
-    grid[4][4] = 4; // Yellow voxel at (4,4)
+// Modify this function to generate the desired shape
+vector<vector<int>> generate_shape() {
+    vector<vector<int>> grid(5, vector<int>(5, 0));
+    for (int i = 0; i < 5; i++) grid[i][i] = 1;
 
     return grid;
+}
+
+int main() {
+    auto shape = generate_shape();
+    for (const auto& row : shape) {
+        for (int cell : row) {
+            cout << cell << ' ';
+        }
+        cout << '\\n';
+    }
+    return 0;
 }
 `
 
