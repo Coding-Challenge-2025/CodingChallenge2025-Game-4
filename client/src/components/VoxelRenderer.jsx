@@ -9,6 +9,8 @@ const COLORS = [
   "#9C27B0", // 5: Purple
   "#FF9800", // 6: Orange
   "#E91E63", // 7: Pink
+  "#3F51B5", // 8: Indigo
+  "#00BCD4", // 9: Cyan
 ];
 
 export default function VoxelRenderer({ shape }) {

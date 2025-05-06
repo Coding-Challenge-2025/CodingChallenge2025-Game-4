@@ -1,6 +1,8 @@
 // import { useState } from "react";
 
-export default function GameHeader() {
+export default function GameHeader({
+    submittable
+}) {
     return (
         <header className="bg-gray-800 border-b border-gray-700">
             <div className="container mx-auto px-4 py-6">
@@ -16,8 +18,22 @@ export default function GameHeader() {
                         </div>
                     </div>
                     <div className="flex space-x-3">
-                        <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md">Leaderboard</button>
-                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md">Submit Solution</button>
+                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md">Leaderboard</button>
+                        <button 
+                            className={`px-4 py-2 rounded-md font-medium text-sm transition-all
+                                ${submittable 
+                                ? "bg-blue-600 hover:bg-blue-500 cursor-pointer" 
+                                : "bg-gray-700 cursor-not-allowed"}`}
+                            disabled={!submittable}
+                            onClick={() => {
+                                if (submittable) {
+                                alert("Solution submitted!");
+                                // Add actual submit logic here
+                                }
+                            }}
+                            >
+                            Submit Solution
+                        </button>
                     </div>
                 </div>
             </div>

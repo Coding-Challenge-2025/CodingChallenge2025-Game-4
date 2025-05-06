@@ -102,7 +102,7 @@ export default function CodeEditor({ code, setCode, language }) {
     return (
         <div
             id="monaco-editor-container"
-            className="h-[calc(100vh-350px)] min-h-[300px] border border-gray-700 rounded-md overflow-hidden"
+            className="h-[calc(100vh-250px)] min-h-[300px] border border-gray-700 rounded-md overflow-hidden"
         ></div>
     );
 }

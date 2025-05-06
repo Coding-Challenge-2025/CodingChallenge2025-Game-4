@@ -14,17 +14,46 @@ function App() {
   const [score, setScore] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [gameStatus, setGameStatus] = useState("idle");
+  const [challengeId, setChallengeId] = useState(1);
+  const [submittable, setSubmittable] = useState(false);
+
+  const getShapeById = async (id) => {
+    const response = await fetch(`http://localhost:3000/api/shape/${id}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch shape");
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error("Failed to fetch shape");
+    }
+
+    const result = data.shape.matrix;
+    return result;
+  };
 
   // Load random target shape and code template based on language
   useEffect(() => {
-    const shape = generateTargetShape();
-    setTargetShape(shape);
+    // Immediately Invoked Async Function Expression (IIFE)
+    (async () => {
+      try {
+        const shape = await getShapeById(challengeId); // ✅ await the shape
+        setTargetShape(shape);
+      } catch (error) {
+        console.error("Failed to fetch initial shape:", error);
+      }
+    })();
+
     setCode(getCodeTemplate(language));
   }, []);
 
   // Update code template when language changes
   useEffect(() => {
     setCode(getCodeTemplate(language));
+    setOutputShape([]);
+    setScore(0);
+    setGameStatus("idle");
+    setSubmittable(false);
   }, [language]);
 
   const handleLanguageChange = (newLanguage) => {
@@ -42,70 +71,65 @@ function App() {
     setIsRunning(true);
     setGameStatus("running");
 
-    setTimeout(() => {
-      try {
-        const simulatedOutput = simulateCodeExecution(code, language);
-        setOutputShape(simulatedOutput);
+    try {
+      const response = await fetch("http://localhost:3000/api/code/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetId: 1, // adjust if needed
+          language,
+          code,
+        }),
+      });
 
-        // Compare and calculate score
-        const calculatedScore = calculateScore(targetShape, simulatedOutput);
-        setScore(calculatedScore);
+      const data = await response.json();
 
-        setGameStatus(calculatedScore === 100 ? "success" : "failed");
-        setIsRunning(false);
-      } catch (error) {
-        console.error("Error executing code:", error);
+      if (data.success && Array.isArray(data.output)) {
+        setOutputShape(data.output);
+        setScore(data.similarity); // assuming similarity is a number between 0–100
+
+        if (data.similarity === 100) {
+          setGameStatus("success");
+          setSubmittable(true);
+        } else {
+          setGameStatus("failed");
+        }
+      } else {
+        console.warn("Invalid output from server:", data.message);
         setGameStatus("error");
-        setIsRunning(false);
       }
-    }, 1500);
-  };
-
-  // Simulate code execution (placeholder for actual execution)
-  const simulateCodeExecution = (code, language) => {
-    // In a real implementation, this would execute the code or send it to a backend
-    // For this demo, we'll return a simplified shape based on the example code
-    if (code.includes("grid[3][3] = 1") && code.includes("grid[3][4] = 2")) {
-      // If the example code is present, return a shape similar to it
-      return [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 2, 0, 0, 0, 0, 0],
-        [0, 0, 0, 3, 4, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      ];
-    } else {
-      // Return a random shape if the example code is not present
-      return generateTargetShape();
+    } catch (error) {
+      console.error("Code execution failed:", error);
+      setGameStatus("error");
     }
-  };
 
-  // Calculate score by comparing shapes
-  const calculateScore = (target, output) => {
-    // In a real implementation, this would do a detailed comparison
-    // For this demo, we'll return a random score
-    return Math.floor(Math.random() * 101);
+    setIsRunning(false);
   };
 
   // Generate a new target shape
-  const newChallenge = () => {
-    const shape = generateTargetShape();
-    setTargetShape(shape);
+  const newChallenge = async () => {
+    const nextId = challengeId === 4 ? 1 : challengeId + 1;
+    setChallengeId(nextId);
+
+    try {
+      const newShape = await getShapeById(nextId); // ✅ await the Promise
+      setTargetShape(newShape); // ✅ set actual resolved value
+    } catch (error) {
+      console.error("Failed to fetch new shape:", error);
+    }
+
     setOutputShape([]);
     setScore(0);
     setGameStatus("idle");
   };
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white">
-      <GameHeader />
+    <main className="min-h-screen flex flex-col bg-gray-900 text-white">
+      <GameHeader submittable={submittable} />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="flex-1 container mx-auto px-4 py-6 flex flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left column - Code Editor */}
           <div className="lg:col-span-5 space-y-4">
@@ -189,13 +213,13 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h2 className="text-xl font-bold mb-3">Target Shape</h2>
-                <div className="bg-gray-800 p-4 rounded-lg h-80">
+                <div className="bg-gray-800 p-4 rounded-lg h-full">
                   <VoxelRenderer shape={targetShape} />
                 </div>
               </div>
               <div>
                 <h2 className="text-xl font-bold mb-3">Your Output</h2>
-                <div className="bg-gray-800 p-4 rounded-lg h-80">
+                <div className="bg-gray-800 p-4 rounded-lg h-full">
                   {outputShape.length > 0 ? (
                     <VoxelRenderer shape={outputShape} />
                   ) : (
