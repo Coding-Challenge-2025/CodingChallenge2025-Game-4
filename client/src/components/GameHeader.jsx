@@ -49,6 +49,41 @@ export default function GameHeader({ submittable }) {
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md">
               Leaderboard
             </button>
+            <Menubar.Root>
+              <Menubar.Menu>
+                <Menubar.Trigger />
+                <Menubar.Portal>
+                  <Menubar.Content>
+                    <Menubar.Label />
+                    <Menubar.Item>New Tab</Menubar.Item>
+
+                    <Menubar.Group>
+                      <Menubar.Item />
+                    </Menubar.Group>
+
+                    <Menubar.CheckboxItem>
+                      <Menubar.ItemIndicator />
+                    </Menubar.CheckboxItem>
+
+                    <Menubar.RadioGroup>
+                      <Menubar.RadioItem>
+                        <Menubar.ItemIndicator />
+                      </Menubar.RadioItem>
+                    </Menubar.RadioGroup>
+
+                    <Menubar.Sub>
+                      <Menubar.SubTrigger />
+                      <Menubar.Portal>
+                        <Menubar.SubContent />
+                      </Menubar.Portal>
+                    </Menubar.Sub>
+
+                    <Menubar.Separator />
+                    <Menubar.Arrow />
+                  </Menubar.Content>
+                </Menubar.Portal>
+              </Menubar.Menu>
+            </Menubar.Root>
             <button
               className={`px-4 py-2 rounded-md font-medium text-sm transition-all
                                 ${
