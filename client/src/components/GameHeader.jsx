@@ -11,6 +11,21 @@ export default function GameHeader({ submittable }) {
 
   // Time limit in seconds
   const [timeLeft, setTimeLeft] = useState();
+  const [contestants, setContestants] = useState([]);
+
+  const getContestants = async () => {
+    try {
+      setContestants([
+        { id: 1, name: "Player 1", score: 15, rank: 1 },
+        { id: 2, name: "Player 2", score: 12, rank: 2 },
+        { id: 3, name: "Player 3", score: 10, rank: 3 },
+        { id: 4, name: "Player 4", score: 8, rank: 4 },
+        { id: 4, name: "Player 4", score: 8, rank: 4 },
+      ]);
+    } catch (error) {
+      console.error("Error fetching contestants:", error);
+    }
+  };
 
   useEffect(() => {
     let timer;
@@ -46,45 +61,44 @@ export default function GameHeader({ submittable }) {
             <div className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-md">
               {formatTime(timeLeft)}
             </div>
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md">
-              Leaderboard
-            </button>
             <Menubar.Root>
               <Menubar.Menu>
-                <Menubar.Trigger />
+                <Menubar.Trigger>
+                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md" onClick={getContestants}>
+                    Leaderboard
+                  </button>
+                </Menubar.Trigger>
                 <Menubar.Portal>
                   <Menubar.Content>
                     <Menubar.Label />
-                    <Menubar.Item>New Tab</Menubar.Item>
+                    <Menubar.Item>
+                      <div className="w-72 h-max bg-gray-900 rounded-md p-1 text-white">
+                        <div className="w-full grid grid-cols-12 rounded-md gap-1 bg-gray-800">
+                          <div className="col-span-2 text-center">Rank</div>
+                          <div className="col-span-7 text-center">Name</div>
+                          <div className="col-span-3 text-center">Point</div>
+                        </div>
 
-                    <Menubar.Group>
-                      <Menubar.Item />
-                    </Menubar.Group>
-
-                    <Menubar.CheckboxItem>
-                      <Menubar.ItemIndicator />
-                    </Menubar.CheckboxItem>
-
-                    <Menubar.RadioGroup>
-                      <Menubar.RadioItem>
-                        <Menubar.ItemIndicator />
-                      </Menubar.RadioItem>
-                    </Menubar.RadioGroup>
-
-                    <Menubar.Sub>
-                      <Menubar.SubTrigger />
-                      <Menubar.Portal>
-                        <Menubar.SubContent />
-                      </Menubar.Portal>
-                    </Menubar.Sub>
-
-                    <Menubar.Separator />
-                    <Menubar.Arrow />
+                        {contestants.map((contestant) => (
+                          <div className="w-full grid grid-cols-12 gap-1">
+                            <div className="col-span-2 text-center">
+                              {contestant.rank}
+                            </div>
+                            <div className="col-span-7 text-center">
+                              {contestant.name}
+                            </div>
+                            <div className="col-span-3 text-center">
+                              {contestant.score}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Menubar.Item>
                   </Menubar.Content>
                 </Menubar.Portal>
               </Menubar.Menu>
             </Menubar.Root>
-            <button
+            {/* <button
               className={`px-4 py-2 rounded-md font-medium text-sm transition-all
                                 ${
                                   submittable
@@ -100,7 +114,7 @@ export default function GameHeader({ submittable }) {
               }}
             >
               Submit Solution
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

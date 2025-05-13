@@ -27,7 +27,7 @@ export default function CodeEditor({ code, setCode, language }) {
                 theme: "vs-dark",
                 automaticLayout: true,
                 minimap: {
-                    enabled: true,
+                    enabled: false,
                     scale: 0.8,
                     showSlider: "mouseover",
                 },

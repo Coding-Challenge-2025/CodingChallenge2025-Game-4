@@ -37,6 +37,7 @@ function App() {
     }
 
     const result = data.shape.matrix;
+    console.log("Fetched shape:", result);
     return result;
   };
 
