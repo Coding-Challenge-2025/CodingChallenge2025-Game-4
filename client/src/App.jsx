@@ -5,6 +5,7 @@ import GameHeader from "./components/GameHeader";
 import CodeEditor from "./components/CodeEditor";
 import { generateTargetShape } from "./utils/shape-generator";
 import { getCodeTemplate } from "./utils/code-template";
+import GridComponent from "./components/GridComponent";
 
 function App() {
   const [code, setCode] = useState("");
@@ -134,6 +135,8 @@ function App() {
     setGameStatus("idle");
   };
 
+  // return (<GridComponent/>);
+
   return (
     <main className="min-h-screen flex flex-col bg-gray-900 text-white">
       <div className="flex-1 container mx-auto p-2 flex flex-col">
@@ -228,22 +231,24 @@ function App() {
             </div>
 
             <div className="grid grid-cols-1 grid-rows-2 gap-1 h-full bg-emerald-800">
-              <div className="bg-blue-700 relative">
-                <h2 className="text-xl font-bold mb-3 absolute top-0">
+              <div className="relative">
+                <h2 className="text-xl text-black font-bold mb-3 absolute top-0 left-1 z-30">
                   Target Shape
                 </h2>
-                <div className="bg-gray-800 p-4 rounded-lg h-full">
-                  <VoxelRenderer shape={targetShape} />
+                <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
+                  {/* <VoxelRenderer shape={targetShape} /> */}
+                  <GridComponent grid={targetShape} />
                 </div>
               </div>
 
-              <div className="bg-blue-400 relative">
-                <h2 className="text-xl font-bold mb-3 absolute top-0">
+              <div className="relative">
+                <h2 className="text-xl text-black font-bold mb-3 absolute top-0 left-1 z-30">
                   Your Output
                 </h2>
-                <div className="bg-gray-800 p-4 rounded-lg h-full">
+                <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
                   {outputShape.length > 0 ? (
-                    <VoxelRenderer shape={outputShape} />
+                    // <VoxelRenderer shape={outputShape} />
+                    <GridComponent grid={outputShape} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
                       Run your code to see output

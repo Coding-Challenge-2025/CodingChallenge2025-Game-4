@@ -20,11 +20,11 @@ Render 2.5D:
 
 View shape:
 - [x] Hiện dialog với các target shape khác nhau
-- [ ] Thí sinh chọn và làm bài (?)
+- [x] Thí sinh chọn và làm bài (?)
 
 Leaderboard:
-- [ ] Dialog overlay màn hình game.
-- [ ] Hiển thị rank + điểm số (số bài làm được) của các thí sinh
+- [x] Dialog overlay màn hình game.
+- [x] Hiển thị rank + điểm số (số bài làm được) của các thí sinh
 
 Socket:
 - [ ] Handle 4 players
