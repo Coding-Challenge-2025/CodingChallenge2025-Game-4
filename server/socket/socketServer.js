@@ -87,6 +87,13 @@ function setupSocketServer(io) {
         );
       }
 
+      // check if the host has joined
+      if (!hostJoined) {
+        return next(
+          new Error("Authentication error: waiting for host to join")
+        );
+      }
+
       socket.username = user.username;
       socket.userId = user.id;
       socket.userScore = user.score || 0;
