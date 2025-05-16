@@ -14,9 +14,9 @@ If you are developing a production application, we recommend using TypeScript wi
 ## Todo
 
 Render 2.5D:
-- [ ] Hiển thị thông tin ô khi hover (tọa độ, màu)
+- [x] Hiển thị thông tin ô khi hover (tọa độ, màu)
 - [x] Tăng kích thước container (target và output) (fix height later)
-- [ ] Đổi góc nhìn
+- [x] Đổi góc nhìn
 
 View shape:
 - [x] Hiện dialog với các target shape khác nhau

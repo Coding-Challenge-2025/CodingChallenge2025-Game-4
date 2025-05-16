@@ -4,25 +4,26 @@ import { OrbitControls, RoundedBox, Text } from "@react-three/drei";
 import * as THREE from "three";
 
 // 📝 NOTE: READ THE color-palette-test.css FILE FOR PALETTE PREVIEW
-const Grid = ({grid}:{grid: number[][]}) => {
-  // Colors for values 1 to 9
-  const valueColors = [
-    "#4600e8",
-    "#256486",
-    "#2bf2f9",
-    "#b5eaf5",
-    "#693421",
-    "#ecad32",
-    "#f8cd83",
-    "#d92517",
-    "#f2f2f2",
-    "#41e590",
-  ];
+// Colors for values 1 to 9
+const valueColors = [
+  "#4600e8",
+  "#256486",
+  "#2bf2f9",
+  "#b5eaf5",
+  "#693421",
+  "#ecad32",
+  "#f8cd83",
+  "#d92517",
+  "#f2f2f2",
+  "#41e590",
+];
+
+const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
 
   const gap = 1; // Space between blocks
 
   // State to track the currently clicked block's coordinates
-  const [clickedCoord, setClickedCoord] = useState<{ x: number; y: number; visible: boolean } | null>(null);
+  const [clickedCoord, setClickedCoord] = useState<{ x: number; y: number; color: number; visible: boolean } | null>(null);
 
   // Explicitly type the cubes array as React.ReactNode[]
   const cubes: React.ReactNode[] = [];
@@ -40,7 +41,7 @@ const Grid = ({grid}:{grid: number[][]}) => {
             if (isClicked) {
               setClickedCoord(null);
             } else {
-              setClickedCoord({ x, y, visible: true });
+              setClickedCoord({ x, y, color: value, visible: true });
             }
           }}
         >
@@ -56,6 +57,33 @@ const Grid = ({grid}:{grid: number[][]}) => {
         </mesh>
       );
     }
+  }
+  
+  const palette: React.ReactNode[] = [];
+  for (let i = 0; i < valueColors.length; i++) {
+    palette.push(
+      <mesh
+        key={`palette-${i}`}
+        position={[11, i * gap, 0]} // Position below the grid
+      >
+        <RoundedBox args={[1, 1, 1]} radius={0.2} smoothness={4}>
+          <meshLambertMaterial
+            color={valueColors[i] as unknown as THREE.Color}
+            transparent={true}
+            opacity={1}
+          />
+        </RoundedBox>
+        <Text
+          position={[0, 0, 0.55]} // Position above the block
+          fontSize={0.3}
+          color="black"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {i}
+        </Text>
+      </mesh>
+    );
   }
 
   // Add axes with labels
@@ -91,8 +119,10 @@ const Grid = ({grid}:{grid: number[][]}) => {
   }
 
   return (
-    <group rotation={[0, THREE.MathUtils.degToRad(12), 0]}>
+    <group rotation={[0, THREE.MathUtils.degToRad(8), 0]}>
       {cubes}
+      {showPalette && palette}
+      {/* Add axes labels */}
       {xAxisLabels}
       {yAxisLabels}
       {clickedCoord && clickedCoord.visible && (
@@ -100,14 +130,14 @@ const Grid = ({grid}:{grid: number[][]}) => {
           position={[
             clickedCoord.x * gap,
             (9 - clickedCoord.y) * gap, // Above the block, adjusted for new Y mapping
-            0.6
+            0.55
           ]}
           fontSize={0.3}
           color="black"
           anchorX="center"
           anchorY="middle"
         >
-          ({clickedCoord.x}, {clickedCoord.y})
+          ({clickedCoord.x}, {clickedCoord.y}){`\nCol: ${clickedCoord.color}`}
         </Text>
       )}
     </group>
@@ -136,13 +166,13 @@ const CameraSetup = ({
     }
   }, [camera, left, front, top]);
 
-  return <OrbitControls ref={controlsRef} minDistance={10} maxDistance={30} />;
+  return <OrbitControls ref={controlsRef} minDistance={5} maxDistance={30} />;
 };
 
-const GridComponent = ({grid = []}:{grid: number[][]}) => {
+const GridComponent = ({grid = [], showPalette = false}:{grid: number[][], showPalette: boolean}) => {
   const [left, setLeft] = useState(5);
-  const [front, setFront] = useState(5);
-  const [top, setTop] = useState(10); // Camera positioned along Z-axis
+  const [front, setFront] = useState(4);
+  const [top, setTop] = useState(9.5); // Camera positioned along Z-axis
 
   return (
     <>
@@ -155,7 +185,7 @@ const GridComponent = ({grid = []}:{grid: number[][]}) => {
         {/* Directional light for full lighting, increased intensity */}
         <directionalLight position={[5, 10, 5]} intensity={1.0} />
         <directionalLight position={[-5, 10, -5]} intensity={0.8} />
-        <Grid grid={grid}/>
+        <Grid grid={grid} showPalette={showPalette}/>
         <CameraSetup left={left} front={front} top={top} />
       </Canvas>
 
