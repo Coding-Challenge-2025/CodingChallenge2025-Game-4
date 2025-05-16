@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import VoxelRenderer from "./VoxelRenderer";
-import GameHeader from "./GameHeader";
-import CodeEditor from "./CodeEditor";
+import VoxelRenderer from "../components/VoxelRenderer";
+import GameHeader from "../components/GameHeader";
+import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
 
 export default function Game() {

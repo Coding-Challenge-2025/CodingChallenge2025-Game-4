@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import socketService from "../services/socketService";
-import VoxelRenderer from "./VoxelRenderer";
+import VoxelRenderer from "../components/VoxelRenderer";
 import { Tab } from "@headlessui/react";
 
 export default function HostDashboard({ onBack, onSwitchToGame }) {

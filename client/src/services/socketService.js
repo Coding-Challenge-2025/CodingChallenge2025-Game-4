@@ -47,7 +47,7 @@ class SocketService {
         // Check if the error is about waiting for host
         if (error.message && error.message.includes("waiting for host")) {
           // Special error for waiting for host
-          reject(new Error("Cannot join room: Waiting for host to join"));
+          reject(new Error("Waiting for host to join"));
         } else if (this.connectionAttempts >= this.maxConnectionAttempts) {
           reject(
             new Error(
