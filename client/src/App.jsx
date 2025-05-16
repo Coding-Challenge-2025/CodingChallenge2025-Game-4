@@ -18,19 +18,6 @@ function App() {
   const [challengeId, setChallengeId] = useState(1);
   const [submittable, setSubmittable] = useState(false);
 
-  const valueColors = [
-    "#4600e8",
-    "#256486",
-    "#2bf2f9",
-    "#b5eaf5",
-    "#693421",
-    "#ecad32",
-    "#f8cd83",
-    "#d92517",
-    "#f2f2f2",
-    "#41e590",
-  ];
-
   // For shape selection button
   const [shapeOptions, setShapeOptions] = useState([
     { id: 1, name: "Shape 1" },
@@ -242,19 +229,6 @@ function App() {
                 </div>
               </div>
             </div>
-
-            {/* <div className="bg-gray-800 p-1 rounded-lg">
-              {valueColors.map((color, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-2"
-                  style={{ backgroundColor: color }}
-                >
-                  <div className="w-4 h-4 rounded-full"></div>
-                  <span className="text-sm">Value {index}</span>
-                </div>
-              ))}
-            </div> */}
 
             <div className="grid grid-cols-1 grid-rows-2 gap-1 h-[90%] bg-emerald-800">
               <div className="relative">

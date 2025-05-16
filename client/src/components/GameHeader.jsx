@@ -20,7 +20,7 @@ export default function GameHeader({ submittable }) {
         { id: 2, name: "Player 2", score: 12, rank: 2 },
         { id: 3, name: "Player 3", score: 10, rank: 3 },
         { id: 4, name: "Player 4", score: 8, rank: 4 },
-        { id: 4, name: "Player 4", score: 8, rank: 4 },
+        { id: 5, name: "Player 5", score: 8, rank: 4 },
       ]);
     } catch (error) {
       console.error("Error fetching contestants:", error);
@@ -64,15 +64,15 @@ export default function GameHeader({ submittable }) {
             <Menubar.Root>
               <Menubar.Menu>
                 <Menubar.Trigger>
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md" onClick={getContestants}>
+                  <div className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md" onClick={getContestants}>
                     Leaderboard
-                  </button>
+                  </div>
                 </Menubar.Trigger>
                 <Menubar.Portal>
                   <Menubar.Content>
                     <Menubar.Label />
                     <Menubar.Item>
-                      <div className="w-72 h-max bg-gray-900 rounded-md p-1 text-white">
+                      <div className="w-72 h-max bg-gray-900 rounded-md p-1 text-white z-40">
                         <div className="w-full grid grid-cols-12 rounded-md gap-1 bg-gray-800">
                           <div className="col-span-2 text-center">Rank</div>
                           <div className="col-span-7 text-center">Name</div>
@@ -80,7 +80,7 @@ export default function GameHeader({ submittable }) {
                         </div>
 
                         {contestants.map((contestant) => (
-                          <div className="w-full grid grid-cols-12 gap-1">
+                          <div className="w-full grid grid-cols-12 gap-1" key={contestant.id}>
                             <div className="col-span-2 text-center">
                               {contestant.rank}
                             </div>
