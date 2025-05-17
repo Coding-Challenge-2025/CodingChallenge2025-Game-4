@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
 import socketService from "../services/socketService";
+import { useLocation, useNavigate } from "react-router-dom";
 
-export default function WaitingRoom({ username, onBack }) {
+export default function WaitingRoom() {
   const [hostStatus, setHostStatus] = useState("offline"); // "offline", "online", "starting"
   const [message, setMessage] = useState("");
+  const [countdown, setCountdown] = useState(5);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { username } = location.state || { username: "Guest" };
 
   useEffect(() => {
     socketService.registerHandlers({
@@ -26,16 +31,41 @@ export default function WaitingRoom({ username, onBack }) {
     };
   }, []);
 
+  // if the game is started, wait for 5 seconds and then redirect to the game page
+  useEffect(() => {
+    if (hostStatus === "starting") {
+      const countdownTimer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownTimer);
+            return 0;
+          }
+
+          return prev - 1;
+        });
+      }, 1000);
+
+      const navigationTimer = setTimeout(() => {
+        navigate("/game");
+      }, 5000);
+
+      return () => {
+        clearInterval(countdownTimer);
+        clearTimeout(navigationTimer);
+      };
+    }
+  }, [hostStatus, navigate]);
+
+  const onBack = () => {
+    socketService.disconnect();
+    // Navigate back to login page
+    window.location.href = "/";
+  };
+
   return (
     <main className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
       <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">
-          {hostStatus === "offline"
-            ? "Waiting for Host"
-            : hostStatus === "online"
-            ? "Waiting for Game to Start"
-            : "Game Starting..."}
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Waiting for game to start</h1>
 
         <div className="mb-6">
           <div
@@ -56,7 +86,9 @@ export default function WaitingRoom({ username, onBack }) {
           </p>
 
           <p className="text-gray-400">
-            {message || "Waiting for the host..."}
+            {hostStatus === "starting"
+              ? `Game starting in ${countdown} seconds...`
+              : message || "Waiting for the host..."}
           </p>
         </div>
 
@@ -87,7 +119,11 @@ export default function WaitingRoom({ username, onBack }) {
         <div className="flex flex-col space-y-3">
           <button
             onClick={onBack}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md"
+            className={`px-4 py-2 ${
+              hostStatus === "starting"
+                ? "bg-gray-600 text-white rounded-lg shadow-md hover:bg-gray-700"
+                : "bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
+            }`}
           >
             Back to Login
           </button>

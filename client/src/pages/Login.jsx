@@ -1,11 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import socketService from "../services/socketService";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/authContext"
 
-export default function LoginForm({ onLogin, error }) {
+export default function Home() {
+  const [authError, setAuthError] = useState("");
+  const [isHost, setIsHost] = useState(false);
+  const [canJoin, setCanJoin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isHostLogin, setIsHostLogin] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  useEffect(() => {
+    socketService.registerHandlers({
+      gameStarted: () => {
+        console.log("Game started");
+      },
+      error: (error) => {
+        setAuthError(error.message || "An error occurred");
+        if (error.message?.includes("Host has not joined yet")) {
+          console.log("Host has not joined yet");
+          setCanJoin(false);
+        }
+      },
+    });
+
+    return () => {
+      socketService.clearHandlers();
+    };
+  }, []);
+
+  const checkIfHost = (value) => {
+    setUsername(value);
+    setIsHostLogin(value.toLowerCase() === "host");
+    setIsHost(value.toLowerCase() === "host");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,19 +55,37 @@ export default function LoginForm({ onLogin, error }) {
 
     setIsLoading(true);
     setErrorMessage("");
+    setAuthError("");
 
     try {
-      await onLogin(username, password);
+      const serverUrl = "http://localhost:3000";
+      await socketService.connect(serverUrl, username, password);
+
+      // Simulate user data (adjust based on your backend response)
+      const userData = {
+        username,
+        isHost: isHostLogin,
+        userId: username, // Replace with actual userId from backend
+      };
+
+      login(userData); // Update auth context
+
+      console.log("User logged in:", userData);
+
+      // Navigate based on user role
+      if (isHostLogin) {
+        navigate("/host-dashboard");
+      } else {
+        navigate("/waiting-room", { state: { username } });
+      }
     } catch (error) {
-      setErrorMessage(`Error logging in: ${error.message}`);
+      console.error("Authentication failed:", error);
+      setErrorMessage(
+        error.message || "Authentication failed. Please check your credentials."
+      );
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const checkIfHost = (value) => {
-    setUsername(value);
-    setIsHostLogin(value.toLowerCase() === "host");
   };
 
   return (
@@ -58,9 +109,9 @@ export default function LoginForm({ onLogin, error }) {
           )}
         </div>
 
-        {(errorMessage || error) && (
+        {(errorMessage || authError) && (
           <div className="bg-red-900/50 border border-red-800 text-white p-4 rounded-md mb-6">
-            {errorMessage || error}
+            {errorMessage || authError}
           </div>
         )}
 
