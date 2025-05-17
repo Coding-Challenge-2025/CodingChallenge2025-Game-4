@@ -38,7 +38,7 @@ class SocketService {
         console.log("Connected to socket server");
         this.connectionAttempts = 0;
         this.registerSocketEvents();
-        resolve();
+        resolve(this.socket); // Resolve with socket instance
       });
 
       this.socket.on("connect_error", (error) => {
@@ -71,7 +71,6 @@ class SocketService {
   registerSocketEvents() {
     // Room events
     this.socket.on("room_joined", (data) => {
-      console.log("Room joined event received:", data);
       if (this.handlers.roomJoined) {
         this.handlers.roomJoined(data);
       }
@@ -89,12 +88,12 @@ class SocketService {
       }
     });
 
-    this.socket.on("player_left", (data) => {
-      if (this.handlers.playerLeft) {
-        this.handlers.playerLeft(data);
+    this.socket.on("player_disconnected", (data) => {
+      if (this.handlers.playerDisconnected) {
+        this.handlers.playerDisconnected(data);
       }
-      if (this.globalHandlers.playerLeft) {
-        this.globalHandlers.playerLeft(data);
+      if (this.globalHandlers.playerDisconnected) {
+        this.globalHandlers.playerDisconnected(data);
       }
     });
 
@@ -357,6 +356,13 @@ class SocketService {
     return (
       this.socket && this.socket.auth && this.socket.auth.username === "host"
     );
+  }
+
+  // Add a new method to explicitly join room after handlers are set up
+  joinRoom() {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("join_room");
+    }
   }
 }
 
