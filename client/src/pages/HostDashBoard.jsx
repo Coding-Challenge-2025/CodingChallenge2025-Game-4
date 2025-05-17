@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import socketService from "../services/socketService";
-import GameHeader from "../components/GameHeader";
+import DashBoardHeader from "../components/host-dashboard/DashBoardHeader";
 import GameStatusCard from "../components/host-dashboard/GameStatusCard";
 import PlayersTable from "../components/host-dashboard/PlayersTable";
 import SettingsPanel from "../components/host-dashboard/SettingsPanel";
@@ -199,7 +199,7 @@ export default function HostDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <GameHeader onLogOut={logOut} />
+      <DashBoardHeader onLogOut={logOut} />
 
       <div className="container mx-auto px-4 py-4">
         <GameStatusCard
