@@ -13,6 +13,13 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Todo
 
+- [ ] Luu tai khoan (local/session storage)
+- [ ] Xu ly game o player (sub -> diem++ -> update ui) + admin (client diem ++ -> update ui)...
+- [ ] Luu code theo shape (c++/python)
+- [ ] Het thoi gian -> disable all
+- [ ] Update template
+- [ ] Submit on Run code -> animation when 100%
+
 Render 2.5D:
 - [ ] Hiển thị thông tin ô khi hover (tọa độ, màu)
 - [x] Tăng kích thước container (target và output) (fix height later)
