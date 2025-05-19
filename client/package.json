@@ -12,10 +12,15 @@
   "dependencies": {
     "@headlessui/react": "^2.2.2",
     "@monaco-editor/react": "^4.7.0",
+    "@react-three/drei": "^10.0.7",
+    "@react-three/fiber": "^9.1.2",
     "@tailwindcss/vite": "^4.1.5",
+    "@types/three": "^0.176.0",
     "monaco-editor": "^0.52.2",
+    "radix-ui": "^1.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "three": "^0.176.0",
     "react-router-dom": "^7.6.0",
     "socket.io-client": "^4.7.2",
     "web-vitals": "^2.1.4"

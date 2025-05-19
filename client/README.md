@@ -10,3 +10,22 @@ Currently, two official plugins are available:
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Todo
+
+Render 2.5D:
+- [ ] Hiển thị thông tin ô khi hover (tọa độ, màu)
+- [x] Tăng kích thước container (target và output) (fix height later)
+- [ ] Đổi góc nhìn
+
+View shape:
+- [x] Hiện dialog với các target shape khác nhau
+- [x] Thí sinh chọn và làm bài (?)
+
+Leaderboard:
+- [x] Dialog overlay màn hình game.
+- [x] Hiển thị rank + điểm số (số bài làm được) của các thí sinh
+
+Socket:
+- [ ] Handle 4 players
+- [ ] Tạo tài khoản rồi quăng vô folder data/accounts
