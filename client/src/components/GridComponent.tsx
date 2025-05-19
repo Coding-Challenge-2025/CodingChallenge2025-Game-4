@@ -6,18 +6,17 @@ import * as THREE from "three";
 // 📝 NOTE: READ THE color-palette-test.css FILE FOR PALETTE PREVIEW
 // Colors for values 1 to 9
 const valueColors = [
-  "#4600e8",
-  "#256486",
-  "#2bf2f9",
-  "#b5eaf5",
-  "#693421",
-  "#ecad32",
-  "#f8cd83",
-  "#d92517",
-  "#f2f2f2",
-  "#41e590",
+  "#ffe4e6",
+  "#ffa1ad",
+  "#bf000a",
+  "#f95f11",
+  "#efb100",
+  "#7ccf00",
+  "#00a63e",
+  "#4b83fb",
+  "#432dd7",
+  "#8200db",
 ];
-
 const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
 
   const gap = 1; // Space between blocks
