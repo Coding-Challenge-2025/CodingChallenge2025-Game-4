@@ -19,7 +19,7 @@ export default function HostDashboard() {
   const [showKickModal, setShowKickModal] = useState(false);
   const [roomSettings, setRoomSettings] = useState({
     name: "VoxelCode Arena",
-    maxPlayers: 20,
+    maxPlayers: 4,
     roundDuration: 3,
     minPlayersToStart: 2,
   });
