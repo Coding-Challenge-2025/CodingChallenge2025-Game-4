@@ -19,6 +19,9 @@ If you are developing a production application, we recommend using TypeScript wi
 - [ ] Het thoi gian -> disable all
 - [ ] Update template
 - [ ] Submit on Run code -> animation when 100%
+- [ ] No block on wrong color id
+- [ ] Audience mode
+- [ ] Show case mode
 
 Render 2.5D:
 - [ ] Hiển thị thông tin ô khi hover (tọa độ, màu)
