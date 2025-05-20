@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "id": 2,
+      "username": "alice",
+      "password": 123,
+      "score": 0
+    },
+    {
+      "id": 2,
+      "username": "bob",
+      "password": 456,
+      "score": 0
+    },
+    {
+      "id": 3,
+      "username": "charlie",
+      "password": 789,
+      "score": 0
+    },
+    {
+      "id": 4,
+      "username": "diana",
+      "password": 321,
+      "score": 0
+    }
+  ]
+}
