@@ -17,9 +17,9 @@ If you are developing a production application, we recommend using TypeScript wi
 - [ ] Xu ly game o player (sub -> diem++ -> update ui) + admin (client diem ++ -> update ui)...
 - [ ] Luu code theo shape (c++/python)
 - [ ] Het thoi gian -> disable all
-- [ ] Update template
+- [x] Update template
 - [ ] Submit on Run code -> animation when 100%
-- [ ] No block on wrong color id
+- [x] No block on wrong color id
 - [ ] Audience mode
 - [ ] Show case mode
 

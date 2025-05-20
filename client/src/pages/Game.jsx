@@ -4,6 +4,7 @@ import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
 import GridComponent from "../components/GridComponent";
+import "./../App.css"
 
 export default function Game() {
   const [code, setCode] = useState("");

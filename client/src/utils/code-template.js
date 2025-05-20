@@ -3,17 +3,26 @@
  */
 
 // Python code template
-export const PYTHON_TEMPLATE = `def generate_shape():
-    grid = [[0 for _ in range(5)] for _ in range(5)]
-    for i in range(5):
-        grid[i][i] = 1
+export const PYTHON_TEMPLATE = `N= 10  # Size of the grid
 
-    return grid
+# Modify the grid to create a specific shape
+def generate_shape(grid):
+    """
+    Example:
+    for i in range(N):
+        for j in range(N):
+            grid[i][j] = (i + j) % 2  # Example pattern
+    """
+    pass  # Replace with actual logic
 
+# Do not modify the code below
 def main():
-    shape = generate_shape()
+    shape = [[0 for _ in range(N)] for _ in range(N)]  # Initialize a 10x10 grid with zeros
+    generate_shape(shape)  # Call the function to modify the grid
+
+    # Print the grid
     for row in shape:
-        print(' '.join(map(str, row)))
+        print(' '.join(str(cell) for cell in row))
 
 if __name__ == "__main__":
     main()
@@ -24,16 +33,28 @@ export const CPP_TEMPLATE = `#include <iostream>
 #include <vector>
 using namespace std;
 
-// Modify this function to generate the desired shape
-vector<vector<int>> generate_shape() {
-    vector<vector<int>> grid(5, vector<int>(5, 0));
-    for (int i = 0; i < 5; i++) grid[i][i] = 1;
+const int N = 10; // Size of the grid
 
-    return grid;
+// Modify the grid to create a specific shape
+void generate_shape(vector<vector<int>>& grid) {
+    /*
+        Example: 
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                grid[i][j] = (i + j) % 2; // Example pattern
+            }
+        }
+    */
+
+    // Replace with your own logic to create a specific shape
 }
 
+// Do not modify the code below
 int main() {
-    auto shape = generate_shape();
+    vector<vector<int>> shape(N, vector<int>(N, 0)); // Initialize a 10x10 grid with zeros
+    generate_shape(shape); // Call the function to modify the grid
+
+    // Print the grid
     for (const auto& row : shape) {
         for (int cell : row) {
             cout << cell << ' ';

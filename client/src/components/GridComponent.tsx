@@ -77,7 +77,7 @@ const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
         </RoundedBox>
         <Text
           position={[0, 0, 0.55]} // Position above the block
-          fontSize={0.3}
+          fontSize={0.5}
           color="black"
           anchorX="center"
           anchorY="middle"
@@ -97,7 +97,7 @@ const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
       <Text
         key={`x-${i}`}
         position={[i * gap, 9 * gap + 0.8, 0]} // Position above top row (y=9)
-        fontSize={0.3}
+        fontSize={0.5}
         color="black"
         anchorX="center"
         anchorY="middle"
@@ -110,7 +110,7 @@ const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
       <Text
         key={`y-${i}`}
         position={[-0.8, (9 - i) * gap, 0]} // Position to the left of x=0, closer to edge
-        fontSize={0.3}
+        fontSize={0.5}
         color="black"
         anchorX="center"
         anchorY="middle"
