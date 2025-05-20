@@ -28,8 +28,11 @@ const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
   const cubes: React.ReactNode[] = [];
   for (let x = 0; x < 10; x++) {
     for (let y = 0; y < 10; y++) {
-      const value = grid?.[y]?.[x] ?? 0; // Get the value from the array
-      const color = valueColors[value]; // Map value to color (1-based to 0-based index)
+      const value = grid?.[y]?.[x] ?? 0; // 1- 10
+      if (value <= 0 || value > 10){
+        continue;
+      }
+      const color = valueColors[value - 1];
       const isClicked = clickedCoord && clickedCoord.x === x && clickedCoord.y === y && clickedCoord.visible;
       cubes.push(
         <mesh
@@ -79,7 +82,7 @@ const Grid = ({grid, showPalette}:{grid: number[][]; showPalette: boolean}) => {
           anchorX="center"
           anchorY="middle"
         >
-          {i}
+          {i + 1}
         </Text>
       </mesh>
     );

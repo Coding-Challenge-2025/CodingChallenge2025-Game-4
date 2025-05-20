@@ -13,7 +13,7 @@
     "name": "VoxelCode Arena",
     "maxPlayers": 4,
     "roundDuration": 3,
-    "minPlayersToStart": 2,
+    "minPlayersToStart": 1,
     "autoStartWhenFull": false,
     "welcomeMessage": "Welcome to the VoxelCode Arena! Get ready to code and compete!"
   }

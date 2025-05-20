@@ -235,7 +235,7 @@ export default function Game() {
                 </h2>
                 <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
                   {/* <VoxelRenderer shape={targetShape} /> */}
-                  <GridComponent grid={targetShape} />
+                  <GridComponent grid={targetShape} showPalette/>
                 </div>
               </div>
 
