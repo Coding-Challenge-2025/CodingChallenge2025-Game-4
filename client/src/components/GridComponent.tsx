@@ -191,7 +191,7 @@ const GridComponent = ({grid = [], showPalette = false}:{grid: number[][], showP
         <CameraSetup left={left} front={front} top={top} />
       </Canvas>
 
-      <input
+      {/* <input
         type="number"
         value={left}
         onChange={(e) => {
@@ -211,7 +211,7 @@ const GridComponent = ({grid = [], showPalette = false}:{grid: number[][], showP
         onChange={(e) => {
           setTop(parseInt(e.target.value));
         }}
-      />
+      /> */}
     </>
   );
 };

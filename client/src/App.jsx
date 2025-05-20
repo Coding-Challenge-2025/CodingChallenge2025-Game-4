@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Game from "./pages/Game";
 import WaitingRoom from "./pages/WaitingRoom";
 import HostDashboard from "./pages/HostDashBoard";
+import Audience from "./pages/Audience";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -23,6 +24,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/audience" element={<Audience />} />
           <Route
             path="/game"
             element={
