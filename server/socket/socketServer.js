@@ -239,24 +239,24 @@ function setupSocketServer(io) {
 
           break;
 
-        case "end_round":
-          const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-          if (room && room.gameInProgress && room.timer) {
-            clearInterval(room.timer);
-            gameManager.endRound(GLOBAL_ROOM_ID);
+        // case "end_round":
+        //   const room = gameManager.getRoom(GLOBAL_ROOM_ID);
+        //   if (room && room.gameInProgress && room.timer) {
+        //     clearInterval(room.timer);
+        //     gameManager.endRound(GLOBAL_ROOM_ID);
 
-            // Get final scores
-            const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
-            updatePlayerScores(results.players);
+        //     // Get final scores
+        //     const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
+        //     updatePlayerScores(results.players);
 
-            // Notify all clients in the room
-            io.to(GLOBAL_ROOM_ID).emit("round_ended", {
-              results,
-              room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-            });
-          }
+        //     // Notify all clients in the room
+        //     io.to(GLOBAL_ROOM_ID).emit("round_ended", {
+        //       results,
+        //       room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+        //     });
+        //   }
 
-          break;
+        //   break;
 
         default:
           socket.emit("error", { message: "Unknown command" });
@@ -394,18 +394,18 @@ function setupSocketServer(io) {
       }
     });
 
-    socket.on("start_new_round", () => {
-      try {
-        if (!socket.isHost) {
-          throw new Error("Only the host can start a new round");
-        }
+    // socket.on("start_new_round", () => {
+    //   try {
+    //     if (!socket.isHost) {
+    //       throw new Error("Only the host can start a new round");
+    //     }
 
-        gameManager.resetRound(GLOBAL_ROOM_ID);
-        handleNewRound(GLOBAL_ROOM_ID);
-      } catch (error) {
-        socket.emit("error", { message: error.message });
-      }
-    });
+    //     gameManager.resetRound(GLOBAL_ROOM_ID);
+    //     handleNewRound(GLOBAL_ROOM_ID);
+    //   } catch (error) {
+    //     socket.emit("error", { message: error.message });
+    //   }
+    // });
 
     socket.on("send_message", ({ message }) => {
       if (!message.trim()) {

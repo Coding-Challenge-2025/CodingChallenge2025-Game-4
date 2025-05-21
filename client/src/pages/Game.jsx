@@ -37,7 +37,6 @@ export default function Game() {
     }
 
     const result = data.shape.matrix;
-    console.log("Fetched shape:", result);
     return result;
   };
 

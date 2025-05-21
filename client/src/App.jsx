@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
-import { useAuth } from "./context/authContext";
+import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import Game from "./pages/Game";
 import WaitingRoom from "./pages/WaitingRoom";
@@ -8,10 +8,14 @@ import HostDashboard from "./pages/HostDashBoard";
 import Audience from "./pages/Audience";
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    console.log("User is not authenticated");
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Check if user is authenticated and socket connection is established
+  if (!user) { 
     return <Navigate to="/" />;
   }
 

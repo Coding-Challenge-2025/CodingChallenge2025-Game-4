@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import socketService from "../services/socketService";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/authContext"
+import { useAuth } from "../hooks/useAuth";
 
 export default function Home() {
   const [authError, setAuthError] = useState("");
@@ -64,13 +64,12 @@ export default function Home() {
       // Simulate user data (adjust based on your backend response)
       const userData = {
         username,
+        password,
         isHost: isHostLogin,
-        userId: username, // Replace with actual userId from backend
+        userId: username, 
       };
 
       login(userData); // Update auth context
-
-      console.log("User logged in:", userData);
 
       // Navigate based on user role
       if (isHostLogin) {

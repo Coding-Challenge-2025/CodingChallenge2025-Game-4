@@ -26,7 +26,7 @@ export default function GameStatusCard({
             <div className="flex flex-col">
               <span className="text-xs text-gray-400">Players</span>
               <span className="text-sm font-bold mt-1">
-                {players.length} / {roomSettings.maxPlayers}
+                {players.length - 1 > 0 ? players.length - 1 : 0} / {roomSettings.maxPlayers}
               </span>
             </div>
             <div className="flex flex-col">

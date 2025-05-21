@@ -7,6 +7,47 @@ class SocketService {
     this.globalHandlers = {}; // Add global handlers that persist across registerHandlers calls
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 3;
+    this.sessionInfo = null;
+  }
+
+  saveSession(username, password, isHost) {
+    const sessionInfo = { username, password, isHost };
+    localStorage.setItem("voxelcode_session", JSON.stringify(sessionInfo));
+    this.sessionInfo = sessionInfo;
+  }
+
+  getSession() {
+    if (this.sessionInfo) return this.sessionInfo;
+
+    try {
+      const sessionData = localStorage.getItem("voxelcode_session");
+      if (sessionData) {
+        this.sessionInfo = JSON.parse(sessionData);
+        return this.sessionInfo;
+      }
+    } catch (error) {
+      console.error("Error retrieving session:", error);
+    }
+    return null;
+  }
+
+  clearSession() {
+    localStorage.removeItem("voxelcode_session");
+    this.sessionInfo = null;
+  }
+
+  hasSession() {
+    return !!this.getSession();
+  }
+
+  async reconnect() {
+    const session = this.getSession();
+    if (!session) {
+      throw new Error("No stored session found");
+    }
+
+    const serverUrl = "http://localhost:3000";
+    return this.connect(serverUrl, session.username, session.password);
   }
 
   connect(serverUrl, username, password) {
@@ -16,9 +57,6 @@ class SocketService {
         this.socket.disconnect();
       }
 
-      console.log(
-        `Authenticate with username: ${username} and password: ${password}`
-      );
       this.connectionAttempts += 1;
 
       // Connect to socket server with auth
@@ -38,7 +76,12 @@ class SocketService {
         console.log("Connected to socket server");
         this.connectionAttempts = 0;
         this.registerSocketEvents();
-        resolve(this.socket); // Resolve with socket instance
+
+        // save session info
+        const isHost = username.toLowerCase() === "host";
+        this.saveSession(username, password, isHost);
+
+        resolve(this.socket);
       });
 
       this.socket.on("connect_error", (error) => {
@@ -65,6 +108,7 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.clearSession();
     }
   }
 
@@ -117,6 +161,8 @@ class SocketService {
     });
 
     this.socket.on("kicked", (data) => {
+      this.clearSession();
+
       if (this.handlers.kicked) {
         this.handlers.kicked(data);
       }
@@ -251,7 +297,6 @@ class SocketService {
 
     // Disconnect event
     this.socket.on("disconnect", (reason) => {
-      console.log("Disconnected:", reason);
       if (this.handlers.disconnect) {
         this.handlers.disconnect(reason);
       }
@@ -267,7 +312,7 @@ class SocketService {
 
   // Register global handlers that persist across registerHandlers calls
   registerGlobalHandlers(handlers) {
-    this.globalHandlers = handlers;
+    this.globalHandlers = { ...this.globalHandlers, ...handlers };
   }
 
   // Clear all handlers
@@ -348,14 +393,18 @@ class SocketService {
   }
 
   get isHost() {
-    return this.socket && this.socket.auth && this.socket.auth.isHost;
+    const session = this.getSession();
+    return session && session.isHost;
   }
 
   // Add a method to check if the current user is a host
   isUserHost() {
-    return (
-      this.socket && this.socket.auth && this.socket.auth.username === "host"
-    );
+    const session = this.getSession();
+    return session && session.username.toLowerCase === "host";
+  }
+
+  isConnected() {
+    return this.socket && this.socket.connected;
   }
 
   // Add a new method to explicitly join room after handlers are set up
