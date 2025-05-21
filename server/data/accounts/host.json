@@ -4,15 +4,14 @@
     "username": "host",
     "password": 1234,
     "isHost": true,
-    "canModerate": true,
     "canBanUsers": true,
     "canResetScores": true,
     "canChangeSettings": true
   },
   "roomSettings": {
-    "name": "VoxelCode Arena",
+    "name": "VoxelCode",
     "maxPlayers": 4,
-    "roundDuration": 3,
+    "roundDuration": 10,
     "minPlayersToStart": 1,
     "autoStartWhenFull": false,
     "welcomeMessage": "Welcome to the VoxelCode Arena! Get ready to code and compete!"
