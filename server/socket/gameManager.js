@@ -25,10 +25,8 @@ class GameManager {
             createdAt: Date.now(),
             players: [],
             gameInProgress: false,
-            currentRound: 0, 
-            currentShape: null,
-            roundStartTime: null,
-            roundEndTime: null,
+            gameStartTime: null,
+            gameEndTime: null,
             timer: null,
             chat: [],
             isActive: options.isActive !== undefined ? options.isActive : true,
@@ -59,9 +57,7 @@ class GameManager {
             createdAt: room.createdAt,
             players: room.players,
             gameInProgress: room.gameInProgress,
-            currentRound: room.currentRound,
-            currentShape: room.currentShape,
-            roundEndTime: room.roundEndTime,
+            gameEndTime: room.gameEndTime,
             isActive: room.isActive,
             hostId: room.hostId,
         };
@@ -112,7 +108,6 @@ class GameManager {
         }
 
         room.gameInProgress = true;
-        room.currentRound = 1;
 
         room.players.forEach((player) => {
             player.score = 0;
@@ -122,63 +117,20 @@ class GameManager {
         })
     }
 
-    generateShapeForRoom(roomId) {
+    endGame(roomId) {
         const room = this.getRoom(roomId);
         if (!room) {
             throw new Error(`Room ${roomId} does not exist`);
         }
 
-        // If a specific shape was selected by the host, use that
-        if (room.nextShapeId) {
-            try {
-                const shapeId = room.nextShapeId
-                const shapePath = path.join(__dirname, `../data/shapes/shape${shapeId}.txt`)
-
-                if (fs.existsSync(shapePath)) {
-                const content = fs.readFileSync(shapePath, "utf8").trim().split("\n")
-                const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number))
-                room.currentShape = matrix
-                room.nextShapeId = null // Reset for next time
-                return matrix
-                }
-            } catch (error) {
-                console.error("Error loading selected shape file:", error)
-            }
-        }
-
-        try {
-            const shapeId = (room.currentRound % 5) + 1;
-            const shapePath = path.join(__dirname, `../data/shapes/shape${shapeId}.txt`);
-
-            if (fs.existsSync(shapePath)) {
-                const content = fs.readFileSync(shapePath, "utf8").trim().split("\n");
-                const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number));
-                room.currentShape = matrix;
-
-                return matrix;
-            }
-        } catch (error) {
-            console.error(`Error reading shape file: ${error.message}`);
-            throw new Error("Failed to generate shape due to file error");
-        }
-    }
-
-    setRoundTimer(roomId, endTime) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        room.roundEndTime = endTime;
-    }
-
-    setRoundStartTime(roomId, startTime) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        room.roundStartTime = startTime;
+        room.gameInProgress = false;
+        
+        room.players.forEach((player) => {
+            player.status = 'waiting';
+            player.currentShape = null;
+            player.roundScores = [];
+            player.completionTime = null;
+        })
     }
 
     setRoomTimer(roomId, timer) {
@@ -206,71 +158,15 @@ class GameManager {
         player.currentShape = shape;
     }
 
-    allPlayersSubmitted(roomId) {
+    resetGame(roomId) {
         const room = this.getRoom(roomId);
         if (!room) {
             throw new Error(`Room ${roomId} does not exist`);
         }
 
-        return room.players.every(player => player.status === "summitted");
-    }
-
-    endRound(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
+        room.roomEndTime = null;
         room.players.forEach((player) => {
-            player.roundScores = player.roundScores || [];
-            player.roundScores.push({
-                round: room.currentRound,
-                score: player.score || 0
-            })
-
             player.status = "waiting";
-        })
-
-        if (room.timer) {
-            clearInterval(room.timer);
-            room.timer = null;
-        }
-    }
-
-    getRoundResults(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
-
-        return {
-            round: room.currentRound, 
-            players: sortedPlayers.map((player) => ({
-                id: player.id, 
-                userId: player.userId,
-                username: player.username,
-                score: player.score || 0,
-                shape: player.currentShape,
-            })),
-            targetShape: room.currentShape,
-        }
-    }
-
-    resetRound(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        room.currentRound += 1;
-        room.currentShape = null;
-        room.roundEndTime = null;
-        room.players.forEach((player) => {
-            player.status = "playing";
-            player.currentShape = null;
-            player.completionTime = null;
         });
     }
 
