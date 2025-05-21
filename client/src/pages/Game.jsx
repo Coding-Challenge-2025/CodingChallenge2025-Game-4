@@ -4,11 +4,12 @@ import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
 import GridComponent from "../components/GridComponent";
-import "./../App.css"
+import "./../App.css";
 
 export default function Game() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
+  const [codeStore, setCodeStore] = useState(new Map());
   const [targetShape, setTargetShape] = useState([]);
   const [outputShape, setOutputShape] = useState([]);
   const [score, setScore] = useState(0);
@@ -63,6 +64,17 @@ export default function Game() {
     setScore(0);
     setGameStatus("idle");
     setSubmittable(false);
+  }, [language]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("codeStore");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setCodeStore(parsed);
+
+      const initialCode = parsed?.[language]?.[shapeId] || "";
+      setCode(initialCode);
+    }
   }, [language]);
 
   const handleLanguageChange = (newLanguage) => {
@@ -236,7 +248,7 @@ export default function Game() {
                 </h2>
                 <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
                   {/* <VoxelRenderer shape={targetShape} /> */}
-                  <GridComponent grid={targetShape} showPalette/>
+                  <GridComponent grid={targetShape} showPalette />
                 </div>
               </div>
 
