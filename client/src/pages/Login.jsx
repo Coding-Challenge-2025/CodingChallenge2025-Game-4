@@ -16,6 +16,18 @@ export default function Home() {
   const { login } = useAuth();
 
   useEffect(() => {
+    // Check if the user is already logged in
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setUsername(userData.username);
+      setIsHostLogin(userData.isHost);
+      setIsHost(userData.isHost);
+      navigate(userData.isHost ? "/host-dashboard" : "/waiting-room", {
+        state: { username: userData.username },
+      });
+    }
+
     socketService.registerHandlers({
       gameStarted: () => {
         console.log("Game started");
@@ -66,7 +78,7 @@ export default function Home() {
         username,
         password,
         isHost: isHostLogin,
-        userId: username, 
+        userId: username,
       };
 
       login(userData); // Update auth context

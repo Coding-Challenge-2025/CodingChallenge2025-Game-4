@@ -62,22 +62,8 @@ export default function PlayersTable({ players, onKickPlayer, onResetScores }) {
                     <td className="px-3 py-2">#{index + 1}</td>
                     <td className="px-3 py-2 flex items-center gap-1">
                       {player.username}
-                      {index === 0 && players.length > 1 && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-3 w-3 text-yellow-500"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path>
-                        </svg>
-                      )}
                     </td>
-                    <td className="px-3 py-2">{player.score || 0}%</td>
+                    <td className="px-3 py-2">{player.score || 0}</td>
                     <td className="px-3 py-2 capitalize">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs ${

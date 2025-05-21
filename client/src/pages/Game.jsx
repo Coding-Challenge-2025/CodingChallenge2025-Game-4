@@ -4,7 +4,9 @@ import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
 import GridComponent from "../components/GridComponent";
-import "./../App.css"
+import "./../App.css";
+import socketService from "../services/socketService";
+import { useNavigate } from "react-router-dom";
 
 export default function Game() {
   const [code, setCode] = useState("");
@@ -16,6 +18,7 @@ export default function Game() {
   const [gameStatus, setGameStatus] = useState("idle");
   const [challengeId, setChallengeId] = useState(1);
   const [submittable, setSubmittable] = useState(false);
+  const navigate = useNavigate();
 
   // For shape selection button
   const [shapeOptions, setShapeOptions] = useState([
@@ -40,19 +43,41 @@ export default function Game() {
     return result;
   };
 
-  // Load random target shape and code template based on language
   useEffect(() => {
-    // Immediately Invoked Async Function Expression (IIFE)
-    (async () => {
-      try {
-        const shape = await getShapeById(challengeId); // ✅ await the shape
-        setTargetShape(shape);
-      } catch (error) {
-        console.error("Failed to fetch initial shape:", error);
-      }
-    })();
+    socketService.registerHandlers({
+      playerKicked: (data) => {
+        // check if the user is kicked
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (data.playerName === user.username) {
+          alert("You have been kicked from the game. Reason: " + data.reason);
 
-    setCode(getCodeTemplate(language));
+          socketService.disconnect();
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        } else {
+          console.log("Player kicked:", data);
+        }
+      },
+
+      gameEnded: (data) => {
+        // Handle game end event
+        alert("Game has ended by the host. Redirecting...");
+
+        // redirect to the waiting room
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          navigate("/waiting-room", { state: { username: user.username } });
+        } else {
+          alert("You have been logged out. Please log in again.");
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        }
+      },
+    });
+
+    return () => {
+      socketService.clearHandlers();
+    };
   }, []);
 
   // Update code template when language changes
@@ -235,7 +260,7 @@ export default function Game() {
                 </h2>
                 <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
                   {/* <VoxelRenderer shape={targetShape} /> */}
-                  <GridComponent grid={targetShape} showPalette/>
+                  <GridComponent grid={targetShape} showPalette />
                 </div>
               </div>
 

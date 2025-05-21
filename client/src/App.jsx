@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
@@ -6,21 +11,23 @@ import Game from "./pages/Game";
 import WaitingRoom from "./pages/WaitingRoom";
 import HostDashboard from "./pages/HostDashBoard";
 import Audience from "./pages/Audience";
+import LoadingScreen from "./components/host-dashboard/LoadingScreen";
 
-const ProtectedRoute = ({ children }) => {
+const AuthenticatedRoute = ({ children }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen />;
   }
 
   // Check if user is authenticated and socket connection is established
-  if (!user) { 
+  if (!user) {
     return <Navigate to="/" />;
   }
 
   return children;
 };
+
 
 function App() {
   return (
@@ -30,27 +37,27 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/audience" element={<Audience />} />
           <Route
-            path="/game"
-            element={
-              <ProtectedRoute>
-                <Game />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/waiting-room"
             element={
-              <ProtectedRoute>
+              <AuthenticatedRoute>
                 <WaitingRoom />
-              </ProtectedRoute>
+              </AuthenticatedRoute>
             }
           />
           <Route
             path="/host-dashboard"
             element={
-              <ProtectedRoute>
+              <AuthenticatedRoute>
                 <HostDashboard />
-              </ProtectedRoute>
+              </AuthenticatedRoute>
+            }
+          />
+          <Route
+            path="/game"
+            element={
+              <AuthenticatedRoute>
+                <Game />
+              </AuthenticatedRoute>
             }
           />
         </Routes>

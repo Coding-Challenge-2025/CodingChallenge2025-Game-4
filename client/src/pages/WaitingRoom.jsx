@@ -58,6 +58,7 @@ export default function WaitingRoom() {
 
   const onBack = () => {
     socketService.disconnect();
+    localStorage.removeItem("user");
     // Navigate back to login page
     window.location.href = "/";
   };

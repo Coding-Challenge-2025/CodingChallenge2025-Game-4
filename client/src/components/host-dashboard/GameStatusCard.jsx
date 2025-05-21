@@ -3,8 +3,7 @@ export default function GameStatusCard({
   players,
   roomSettings,
   onStartGame,
-  onEndRound,
-  onStartNewRound,
+  onEndGame,
 }) {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg mb-6">
@@ -26,7 +25,8 @@ export default function GameStatusCard({
             <div className="flex flex-col">
               <span className="text-xs text-gray-400">Players</span>
               <span className="text-sm font-bold mt-1">
-                {players.length - 1 > 0 ? players.length - 1 : 0} / {roomSettings.maxPlayers}
+                {players.length - 1 > 0 ? players.length - 1 : 0} /{" "}
+                {roomSettings.maxPlayers}
               </span>
             </div>
             <div className="flex flex-col">
@@ -56,18 +56,10 @@ export default function GameStatusCard({
               )}
             {room?.gameInProgress && (
               <button
-                onClick={onEndRound}
+                onClick={onEndGame}
                 className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
               >
-                End Round
-              </button>
-            )}
-            {!room?.gameInProgress && room?.currentRound > 0 && (
-              <button
-                onClick={onStartNewRound}
-                className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm"
-              >
-                Next Round
+                End Game
               </button>
             )}
           </div>

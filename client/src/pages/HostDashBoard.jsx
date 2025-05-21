@@ -11,9 +11,6 @@ import ErrorScreen from "../components/host-dashboard/ErrorScreen";
 export default function HostDashboard() {
   const [players, setPlayers] = useState([]);
   const [room, setRoom] = useState(null);
-  const [currentShape, setCurrentShape] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [roundHistory, setRoundHistory] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [kickReason, setKickReason] = useState("");
   const [showKickModal, setShowKickModal] = useState(false);
@@ -24,9 +21,6 @@ export default function HostDashboard() {
     minPlayersToStart: 2,
   });
   const [isEditingSettings, setIsEditingSettings] = useState(false);
-  const [systemMessage, setSystemMessage] = useState("");
-  const [availableShapes, setAvailableShapes] = useState([1, 2, 3]);
-  const [selectedShapeId, setSelectedShapeId] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState("");
 
@@ -35,7 +29,6 @@ export default function HostDashboard() {
       roomJoined: (data) => {
         setRoom(data.room);
         setPlayers(data.room.players);
-        setCurrentShape(data.room.currentShape || []);
         setIsLoading(false);
       },
       playerJoined: (data) => {
@@ -46,75 +39,34 @@ export default function HostDashboard() {
         setPlayers(data.room.players);
         setRoom(data.room);
       },
-      newHost: (data) => {
+      gameStarted: (data) => {
         setRoom(data.room);
         setPlayers(data.room.players);
       },
-      gameStarted: (data) => {
+      gameEnded: (data) => {
         setRoom(data.room);
-        setCurrentShape(data.shape);
-        setRoundHistory((prev) => [
-          ...prev,
-          {
-            round: data.room.currentRound,
-            startTime: new Date(),
-            shape: data.shape,
-            players: data.room.players.map((p) => ({ ...p })),
-          },
-        ]);
+        setPlayers(data.room.players);
       },
       scoresUpdated: (data) => {
         setPlayers(data.players);
-        updateLeaderboard(data.players);
-      },
-      roundEnded: (data) => {
-        setRoom((prev) => ({ ...prev, gameInProgress: false }));
-        setRoundHistory((prev) => {
-          const updated = [...prev];
-          const lastRound = updated[updated.length - 1];
-          if (lastRound) {
-            lastRound.endTime = new Date();
-            lastRound.results = data.results;
-          }
-          return updated;
-        });
-      },
-      newRoundStarted: (data) => {
-        setRoom(data.room);
-        setCurrentShape(data.shape);
-        setRoundHistory((prev) => [
-          ...prev,
-          {
-            round: data.room.currentRound,
-            startTime: new Date(),
-            shape: data.shape,
-            players: data.room.players.map((p) => ({ ...p })),
-          },
-        ]);
       },
       settings_updated: (data) => {
         setRoomSettings(data.settings);
         setRoom(data.room);
       },
-      player_kicked: (data) => {
+      playerKicked: (data) => {
         setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
       },
       scores_reset: (data) => {
         setPlayers(data.players);
-        updateLeaderboard(data.players);
       },
       error: (error) => {
         setLoadingError(error.message);
         setIsLoading(false);
       },
-      leaderboard_data: (data) => {
-        setLeaderboard(data.leaderboard);
-      },
-      available_shapes: (data) => {
-        setAvailableShapes(data.shapes);
-      },
     });
 
+    // socketService.requestRoomDetails();
     socketService.requestLeaderboard();
     socketService.requestAvailableShapes();
 
@@ -124,25 +76,8 @@ export default function HostDashboard() {
     };
   }, [isLoading, room]);
 
-  const updateLeaderboard = (players) => {
-    const updatedLeaderboard = [...players]
-      .sort((a, b) => b.score - a.score)
-      .map((player, index) => ({
-        rank: index + 1,
-        username: player.username,
-        score: player.score || 0,
-        isHost: player.isHost,
-      }));
-
-    setLeaderboard(updatedLeaderboard);
-  };
-
   const handleStartGame = () => {
     socketService.startGame();
-  };
-
-  const handleStartNewRound = () => {
-    socketService.startNewRound();
   };
 
   const handleResetScores = () => {
@@ -176,15 +111,17 @@ export default function HostDashboard() {
     setIsEditingSettings(false);
   };
 
-  const handleEndCurrentRound = () => {
+  const handleEndGame = () => {
     if (
-      window.confirm("Are you sure you want to end the current round early?")
+      window.confirm("Are you sure you want to end the current game?")
     ) {
-      socketService.adminCommand("end_round", {});
+      socketService.adminCommand("end_game", {});
     }
   };
 
   const logOut = () => {
+    localStorage.removeItem("user");
+
     socketService.disconnect();
     window.location.href = "/";
   };
@@ -207,8 +144,7 @@ export default function HostDashboard() {
           players={players}
           roomSettings={roomSettings}
           onStartGame={handleStartGame}
-          onEndRound={handleEndCurrentRound}
-          onStartNewRound={handleStartNewRound}
+          onEndGame={handleEndGame}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
