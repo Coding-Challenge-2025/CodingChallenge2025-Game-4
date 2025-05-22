@@ -1,0 +1,8 @@
+{
+  "socketId": null,
+  "userId": 1,
+  "username": "player1",
+  "score": 0,
+  "isHost": false,
+  "status": "disconnected"
+}

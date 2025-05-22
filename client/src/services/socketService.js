@@ -132,6 +132,8 @@ class SocketService {
 
     this.socket.on("player_kicked", (data) => {
       if (this.handlers.playerKicked) {
+        console.log("Player kicked event received:", data);
+
         this.handlers.playerKicked(data);
       }
     });
@@ -163,15 +165,16 @@ class SocketService {
 
     this.socket.on("kicked", (data) => {
       // this.clearSession();
+      console.log("Kicked event received:", data);
 
       if (this.handlers.kicked) {
         this.handlers.kicked(data);
       }
     });
 
-    this.socket.on("room_details", (data) => {
-      if (this.handlers.room_details) {
-        this.handlers.room_details(data);
+    this.socket.on("room_updated", (data) => {
+      if (this.handlers.roomUpdated) {
+        this.handlers.roomUpdated(data);
       }
     });
 

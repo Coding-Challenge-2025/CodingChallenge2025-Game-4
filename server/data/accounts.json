@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "id": 0,
+      "username": "admin",
+      "password": 123,
+      "score": 0
+    },
+    {
+      "id": 1,
+      "username": "player1",
+      "password": 123,
+      "score": 0
+    },
+    {
+      "id": 2,
+      "username": "player2",
+      "password": 123,
+      "score": 0
+    },
+    {
+      "id": 3,
+      "username": "player3",
+      "password": 123,
+      "score": 0
+    },
+    {
+      "id": 4,
+      "username": "player4",
+      "password": 123,
+      "score": 0
+    }
+  ]
+}

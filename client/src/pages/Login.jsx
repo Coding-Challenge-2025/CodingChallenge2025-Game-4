@@ -48,8 +48,8 @@ export default function Home() {
 
   const checkIfHost = (value) => {
     setUsername(value);
-    setIsHostLogin(value.toLowerCase() === "host");
-    setIsHost(value.toLowerCase() === "host");
+    setIsHostLogin(value.toLowerCase() === "admin");
+    setIsHost(value.toLowerCase() === "admin");
   };
 
   const handleSubmit = async (e) => {

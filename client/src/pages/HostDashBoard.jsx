@@ -39,6 +39,10 @@ export default function HostDashboard() {
         setPlayers(data.room.players);
         setRoom(data.room);
       },
+      roomUpdated: (data) => {
+        setRoom(data.room);
+        setPlayers(data.room.players);
+      },
       gameStarted: (data) => {
         setRoom(data.room);
         setPlayers(data.room.players);
@@ -66,7 +70,7 @@ export default function HostDashboard() {
       },
     });
 
-    // socketService.requestRoomDetails();
+    socketService.requestRoomDetails();
     socketService.requestLeaderboard();
     socketService.requestAvailableShapes();
 
@@ -74,7 +78,7 @@ export default function HostDashboard() {
       setIsLoading(false);
       socketService.clearHandlers();
     };
-  }, [isLoading, room]);
+  }, [isLoading]);
 
   const handleStartGame = () => {
     socketService.startGame();
@@ -93,8 +97,9 @@ export default function HostDashboard() {
 
   const confirmKickPlayer = () => {
     if (selectedPlayer) {
+      console.log("Kicking player:", selectedPlayer);
       socketService.adminCommand("kick_player", {
-        playerId: selectedPlayer.id,
+        playerId: selectedPlayer.socketId,
         playerName: selectedPlayer.username,
         reason: kickReason || "Kicked by host",
       });
@@ -112,9 +117,7 @@ export default function HostDashboard() {
   };
 
   const handleEndGame = () => {
-    if (
-      window.confirm("Are you sure you want to end the current game?")
-    ) {
+    if (window.confirm("Are you sure you want to end the current game?")) {
       socketService.adminCommand("end_game", {});
     }
   };

@@ -17,6 +17,23 @@ export default function WaitingRoom() {
         setMessage("Game is starting...");
       },
 
+      kicked: (data) => {
+        console.log("You have been kicked:", data);
+
+        // check if the user is kicked
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          alert("You have been kicked from the game. Reason: " + data.reason);
+          socketService.disconnect();
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        } else {
+          alert("You have been logged out. Please log in again.");
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        }
+      },
+
       error: (error) => {
         if (error.message && error.message.includes("waiting for host")) {
           setHostStatus("offline");

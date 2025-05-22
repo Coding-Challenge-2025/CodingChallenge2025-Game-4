@@ -338,7 +338,7 @@ function setupSocketServer(io) {
           result.output,
           room.currentShape
         );
-        gameManager.udpatePlayerScore(
+        gameManager.updatePlayerScore(
           GLOBAL_ROOM_ID,
           socket.id,
           score.score,
@@ -443,8 +443,7 @@ function setupSocketServer(io) {
     });
 
     socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.username} (${socket.userId})`);
-
+      // console.log(`User disconnected: ${socket.username} (${socket.userId})`);
       gameManager.removePlayerFromRoom(GLOBAL_ROOM_ID, socket.id);
 
       // notify all players in the room about the disconnection
@@ -471,7 +470,7 @@ function setupSocketServer(io) {
     });
 
     socket.on("request_roomdetails", () => {
-      socket.emit("room_details", {
+      socket.emit("room_updated", {
         message: "Successfully get room details",
         room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
       });
@@ -528,7 +527,6 @@ function handleNewRound(roomId) {
 
   // store the timer reference
   gameManager.setRoomTimer(roomId, timer);
-  console.log(`New round started in room ${roomId} with shape ${shape}`);
 }
 
 // update room settings in host.json
@@ -555,8 +553,6 @@ function updateRoomSettings(newSettings) {
     );
 
     roomSettings = hostData.roomSettings; // Update the in-memory settings
-
-    console.log("Room settings updated successfully");
   } catch (error) {
     console.error("Error updating room settings:", error);
   }

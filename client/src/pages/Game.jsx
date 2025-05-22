@@ -20,6 +20,38 @@ export default function Game() {
   const [submittable, setSubmittable] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Warn before refresh or close
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue =
+        "Are you sure you want to refresh? Your game progress may be disrupted.";
+      return "Are you sure you want to refresh? Your game progress may be disrupted.";
+    };
+
+    // Block F5 and Ctrl+R/Cmd+R
+    const handleKeyDown = (event) => {
+      if (
+        event.key === "F5" ||
+        (event.ctrlKey && event.key === "r") ||
+        (event.metaKey && event.key === "r")
+      ) {
+        event.preventDefault();
+        alert(
+          'Refreshing is disabled during gameplay. Use the "Leave Game" button to exit safely.'
+        );
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   // For shape selection button
   const [shapeOptions, setShapeOptions] = useState([
     { id: 1, name: "Shape 1" },
@@ -46,6 +78,8 @@ export default function Game() {
   useEffect(() => {
     socketService.registerHandlers({
       playerKicked: (data) => {
+        console.log("Player kicked:", data);
+
         // check if the user is kicked
         const user = JSON.parse(localStorage.getItem("user"));
         if (data.playerName === user.username) {
@@ -56,6 +90,23 @@ export default function Game() {
           window.location.href = "/";
         } else {
           console.log("Player kicked:", data);
+        }
+      },
+
+      kicked: (data) => {
+        console.log("You have been kicked:", data);
+
+        // check if the user is kicked
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          alert("You have been kicked from the game. Reason: " + data.reason);
+          socketService.disconnect();
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        } else {
+          alert("You have been logged out. Please log in again.");
+          localStorage.removeItem("user");
+          window.location.href = "/";
         }
       },
 
