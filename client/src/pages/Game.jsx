@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
 import GridComponent from "../components/GridComponent";
-import "./../App.css";
 import socketService from "../services/socketService";
 import { useNavigate } from "react-router-dom";
 
@@ -17,9 +16,17 @@ export default function Game() {
   const [gameStatus, setGameStatus] = useState("idle");
   const [challengeId, setChallengeId] = useState(1);
   const [submittable, setSubmittable] = useState(false);
+  const [timeLeft, setTimeLeft] = useState("");
   const navigate = useNavigate();
 
+  // Add refs to track if events have been handled
+  const gameEndedHandled = useRef(false);
+  const kickedHandled = useRef(false);
+
   useEffect(() => {
+    // Prevent page refresh during gameplay
+    let alertShown = false;
+
     const handleBeforeUnload = (event) => {
       event.preventDefault();
       event.returnValue =
@@ -29,11 +36,13 @@ export default function Game() {
 
     const handleKeyDown = (event) => {
       if (
-        event.key === "F5" ||
-        (event.ctrlKey && event.key === "r") ||
-        (event.metaKey && event.key === "r")
+        (event.key === "F5" ||
+          (event.ctrlKey && event.key === "r") ||
+          (event.metaKey && event.key === "r")) &&
+        !alertShown
       ) {
         event.preventDefault();
+        alertShown = true;
         alert(
           'Refreshing is disabled during gameplay. Use the "Leave Game" button to exit safely.'
         );
@@ -43,9 +52,12 @@ export default function Game() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("keydown", handleKeyDown);
 
-    // Register socket handlers
+    // Register socket handlers with duplicate prevention
     socketService.registerHandlers({
       kicked: (data) => {
+        if (kickedHandled.current) return; // Prevent duplicate handling
+        kickedHandled.current = true;
+
         console.log("You have been kicked:", data);
         alert("You have been kicked from the game. Reason: " + data.reason);
         socketService.disconnect();
@@ -53,6 +65,9 @@ export default function Game() {
         navigate("/");
       },
       gameEnded: (data) => {
+        if (gameEndedHandled.current) return; // Prevent duplicate handling
+        gameEndedHandled.current = true;
+
         console.log("Game ended:", data);
         alert("Game has ended by the host. Redirecting...");
         const user = JSON.parse(localStorage.getItem("user"));
@@ -72,7 +87,32 @@ export default function Game() {
           if (!data.room.gameInProgress) {
             navigate("/waiting-room", { state: { username: data.username } });
           }
+
+          // Update the game status based on the room data
+          const currentPlayer = JSON.parse(localStorage.getItem("user"));
+          const player = data.room.players.find(
+            (player) => player.username === currentPlayer.username
+          );
+          if (player) {
+            setScore(player.score);
+          }
         }
+      },
+      scoresReset: (data) => {
+        setScore(0);
+      },
+      scoresUpdated: (data) => {
+        const currentPlayer = JSON.parse(localStorage.getItem("user"));
+        const player = data.players.find(
+          (player) => player.username === currentPlayer.username
+        );
+        if (player) {
+          setScore(player.score);
+        }
+      },
+      timeUpdate: (data) => {
+        setTimeLeft(data.timeLeft);
+        // Handle time update logic here
       },
       error: (error) => {
         console.error("Socket error:", error);
@@ -85,7 +125,9 @@ export default function Game() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("keydown", handleKeyDown);
-      socketService.clearHandlers(); // Clear specific handlers
+      socketService.clearHandlers();
+      gameEndedHandled.current = false;
+      kickedHandled.current = false;
     };
   }, [navigate]);
 
@@ -167,15 +209,17 @@ export default function Game() {
     setGameStatus("idle");
   };
 
-  // return (<GridComponent/>);
-
   return (
     <main className="min-h-screen flex flex-col bg-gray-900 text-white">
       <div className="flex-1 container mx-auto p-2 flex flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left column - Code Editor */}
           <div className="lg:col-span-5 space-y-4">
-            <GameHeader submittable={submittable} />
+            <GameHeader
+              timeLeft={timeLeft}
+              playerScore={score}
+              submittable={submittable}
+            />
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Code Editor</h2>
               <div className="flex space-x-2">
@@ -238,7 +282,7 @@ export default function Game() {
                       className={`h-3 rounded-full ${
                         score === 100 ? "bg-green-500" : "bg-blue-500"
                       }`}
-                      style={{ width: `${score}%` }}
+                      style={{ width: `${score}` }}
                     ></div>
                   </div>
                 </div>

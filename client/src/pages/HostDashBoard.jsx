@@ -14,6 +14,7 @@ export default function HostDashboard() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [kickReason, setKickReason] = useState("");
   const [showKickModal, setShowKickModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [roomSettings, setRoomSettings] = useState({
     name: "VoxelCode Arena",
     maxPlayers: 4,
@@ -50,6 +51,9 @@ export default function HostDashboard() {
       gameEnded: (data) => {
         setRoom(data.room);
         setPlayers(data.room.players);
+      },
+      timeUpdate: (data) => {
+        setTimeLeft(data.timeLeft);
       },
       scoresUpdated: (data) => {
         setPlayers(data.players);
@@ -88,6 +92,13 @@ export default function HostDashboard() {
     if (window.confirm("Are you sure you want to reset all player scores?")) {
       socketService.adminCommand("reset_scores", {});
     }
+  };
+
+  const handleEditScore = (playerId, newScore) => {
+    socketService.adminCommand("update_score", {
+      playerId,
+      score: newScore,
+    });
   };
 
   const handleKickPlayer = (player) => {
@@ -145,6 +156,7 @@ export default function HostDashboard() {
           room={room}
           players={players}
           roomSettings={roomSettings}
+          timeLeft={timeLeft}
           onStartGame={handleStartGame}
           onEndGame={handleEndGame}
         />
@@ -154,6 +166,7 @@ export default function HostDashboard() {
             players={players}
             onKickPlayer={handleKickPlayer}
             onResetScores={handleResetScores}
+            onEditScore={handleEditScore}
           />
 
           <SettingsPanel

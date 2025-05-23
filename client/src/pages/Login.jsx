@@ -78,7 +78,6 @@ export default function Home() {
         username,
         password,
         isHost: isHostLogin,
-        userId: username,
       };
 
       login(userData); // Update auth context

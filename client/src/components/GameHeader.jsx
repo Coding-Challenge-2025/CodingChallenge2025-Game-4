@@ -1,16 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Menubar } from "radix-ui";
 
-export default function GameHeader({ submittable }) {
-  const formatTime = (seconds) => {
-    if (isNaN(seconds) || seconds < 0) return "00:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  };
-
-  // Time limit in seconds
-  const [timeLeft, setTimeLeft] = useState();
+export default function GameHeader({ timeLeft, playerScore }) {
   const [contestants, setContestants] = useState([]);
 
   const getContestants = async () => {
@@ -26,22 +17,6 @@ export default function GameHeader({ submittable }) {
       console.error("Error fetching contestants:", error);
     }
   };
-
-  useEffect(() => {
-    let timer;
-
-    try {
-      setTimeLeft(60);
-    } catch (error) {
-      console.error("Error setting time limit:", error);
-    }
-
-    timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer); // clean up interval
-  }, []);
 
   return (
     <header className="bg-gray-800 border-b border-gray-700">
@@ -61,10 +36,19 @@ export default function GameHeader({ submittable }) {
             <div className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-md">
               {formatTime(timeLeft)}
             </div>
+
+            <div className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md">
+              Score: {playerScore}
+            </div> 
+
+
             <Menubar.Root>
               <Menubar.Menu>
                 <Menubar.Trigger>
-                  <div className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md" onClick={getContestants}>
+                  <div
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md"
+                    onClick={getContestants}
+                  >
                     Leaderboard
                   </div>
                 </Menubar.Trigger>
@@ -80,7 +64,10 @@ export default function GameHeader({ submittable }) {
                         </div>
 
                         {contestants.map((contestant) => (
-                          <div className="w-full grid grid-cols-12 gap-1" key={contestant.id}>
+                          <div
+                            className="w-full grid grid-cols-12 gap-1"
+                            key={contestant.id}
+                          >
                             <div className="col-span-2 text-center">
                               {contestant.rank}
                             </div>
@@ -98,26 +85,16 @@ export default function GameHeader({ submittable }) {
                 </Menubar.Portal>
               </Menubar.Menu>
             </Menubar.Root>
-            {/* <button
-              className={`px-4 py-2 rounded-md font-medium text-sm transition-all
-                                ${
-                                  submittable
-                                    ? "bg-blue-600 hover:bg-blue-500 cursor-pointer"
-                                    : "bg-gray-700 cursor-not-allowed"
-                                }`}
-              disabled={!submittable}
-              onClick={() => {
-                if (submittable) {
-                  alert("Solution submitted!");
-                  // Add actual submit logic here
-                }
-              }}
-            >
-              Submit Solution
-            </button> */}
           </div>
         </div>
       </div>
     </header>
   );
+}
+
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }

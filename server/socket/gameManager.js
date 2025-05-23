@@ -172,6 +172,8 @@ class GameManager {
     }
 
     room.gameInProgress = false;
+    clearInterval(room.timer);
+    room.timer = null;
 
     // change all players status to waiting (except the host)
     room.players.forEach((player) => {
@@ -190,19 +192,22 @@ class GameManager {
     room.timer = timer;
   }
 
-  updatePlayerScore(roomId, playerId, score, shape) {
+  getRoomTimer(roomId) {
     const room = this.getRoom(roomId);
     if (!room) {
       throw new Error(`Room ${roomId} does not exist`);
     }
 
-    const player = room.players.find((player) => player.id === playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    return room.timer;
+  }
+
+  clearRoomTimer(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    player.score = score;
-    player.status = "summitted";
+    room.timer = null;
   }
 
   resetGame(roomId) {
@@ -225,8 +230,22 @@ class GameManager {
 
     room.players.forEach((player) => {
       player.score = 0;
-      player.roundScores = [];
     });
+  }
+
+  updatePlayerScore(roomId, playerId, newScore) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    let player = room.players.find((player) => player.userId === playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    }
+
+    player.score = newScore;
+    return player;
   }
 
   assignHostToPlayer(roomId, playerId) {

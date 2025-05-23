@@ -1,7 +1,11 @@
+"use client";
+
 export default function GameStatusCard({
   room,
   players,
   roomSettings,
+  timeLeft,
+  playerScore,
   onStartGame,
   onEndGame,
 }) {
@@ -35,11 +39,19 @@ export default function GameStatusCard({
                 {roomSettings.name}
               </span>
             </div>
-            {room?.currentRound > 0 && (
+            {playerScore !== undefined && (
               <div className="flex flex-col">
-                <span className="text-xs text-gray-400">Round</span>
+                <span className="text-xs text-gray-400">Your Score</span>
+                <span className="text-sm font-bold mt-1 text-blue-300">
+                  {playerScore}%
+                </span>
+              </div>
+            )}
+            {room?.gameInProgress && timeLeft !== undefined && (
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-400">Time Left</span>
                 <span className="text-sm font-bold mt-1">
-                  {room.currentRound}
+                  {formatTime(timeLeft)}
                 </span>
               </div>
             )}
@@ -67,4 +79,12 @@ export default function GameStatusCard({
       </div>
     </div>
   );
+}
+
+function formatTime(ms) {
+  if (ms === undefined) return "--:--";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }

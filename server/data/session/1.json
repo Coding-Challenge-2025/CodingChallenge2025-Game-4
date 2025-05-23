@@ -1,8 +1,8 @@
 {
-  "socketId": "nJVm7_JtDzblexOEAAA8",
+  "socketId": null,
   "userId": 1,
   "username": "player1",
-  "score": 0,
+  "score": 100,
   "isHost": false,
   "status": "playing"
 }

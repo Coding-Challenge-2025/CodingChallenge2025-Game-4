@@ -3,7 +3,7 @@
     "name": "VoxelCode",
     "maxPlayers": 4,
     "minPlayers": 1,
-    "gameDuration": 2, 
+    "gameDuration": 3, 
     "welcomeMessage": "Welcome to the VoxelCode Arena! Get ready to code and compete!"
   }
 }

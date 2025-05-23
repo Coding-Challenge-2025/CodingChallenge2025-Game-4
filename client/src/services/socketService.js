@@ -136,12 +136,6 @@ class SocketService {
       }
     });
 
-    this.socket.on("host_joined", (data) => {
-      if (this.handlers.hostJoined) {
-        this.handlers.hostJoined(data);
-      }
-    });
-
     this.socket.on("player_disconnected", (data) => {
       if (this.handlers.playerDisconnected) {
         this.handlers.playerDisconnected(data);
@@ -149,9 +143,6 @@ class SocketService {
     });
 
     this.socket.on("kicked", (data) => {
-      // this.clearSession();
-      console.log("Kicked event received:", data);
-
       if (this.handlers.kicked) {
         this.handlers.kicked(data);
       }
@@ -165,14 +156,12 @@ class SocketService {
 
     // Game events
     this.socket.on("game_started", (data) => {
-      console.log("Game started event received:", data);
       if (this.handlers.gameStarted) {
         this.handlers.gameStarted(data);
       }
     });
 
     this.socket.on("game_ended", (data) => {
-      console.log("Game ended event received:", data);
       if (this.handlers.gameEnded) {
         this.handlers.gameEnded(data);
       }
@@ -194,17 +183,25 @@ class SocketService {
       if (this.handlers.scoresUpdated) {
         this.handlers.scoresUpdated(data);
       }
+    })
+
+    this.socket.on("score_updated", (data) => {
+      if (this.handlers.scoreUpdated) {
+        console.log("Score updated:", data);
+        this.handlers.scoreUpdated(data);
+      }
     });
 
     this.socket.on("scores_reset", (data) => {
-      if (this.handlers.scores_reset) {
-        this.handlers.scores_reset(data);
+      if (this.handlers.scoresReset) {
+        console.log("Scores reset:", data);
+        this.handlers.scoresReset(data);
       }
     });
 
     this.socket.on("settings_updated", (data) => {
-      if (this.handlers.settings_updated) {
-        this.handlers.settings_updated(data);
+      if (this.handlers.settingsUpdated) {
+        this.handlers.settingsUpdated(data);
       }
     });
 
@@ -215,27 +212,27 @@ class SocketService {
       }
     });
 
-    // Leaderboard events
-    this.socket.on("leaderboard_data", (data) => {
-      if (this.handlers.leaderboard_data) {
-        this.handlers.leaderboard_data(data);
-      }
-    });
+    // // Leaderboard events
+    // this.socket.on("leaderboard_data", (data) => {
+    //   if (this.handlers.leaderboard_data) {
+    //     this.handlers.leaderboard_data(data);
+    //   }
+    // });
 
-    // Shape events
-    this.socket.on("available_shapes", (data) => {
-      if (this.handlers.available_shapes) {
-        this.handlers.available_shapes(data);
-      }
-    });
+    // // Shape events
+    // this.socket.on("available_shapes", (data) => {
+    //   if (this.handlers.available_shapes) {
+    //     this.handlers.available_shapes(data);
+    //   }
+    // });
 
-    // Error events
-    this.socket.on("error", (error) => {
-      console.error("Socket server error:", error);
-      if (this.handlers.error) {
-        this.handlers.error(error);
-      }
-    });
+    // // Error events
+    // this.socket.on("error", (error) => {
+    //   console.error("Socket server error:", error);
+    //   if (this.handlers.error) {
+    //     this.handlers.error(error);
+    //   }
+    // });
 
     // Disconnect event
     this.socket.on("disconnect", (reason) => {

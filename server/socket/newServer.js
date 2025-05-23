@@ -114,9 +114,7 @@ export default function setupSocketServer(io) {
           );
         }
 
-        console.log("Starting game...")
         handleStartGame(room);
-        console.log("Game started: ", gameManager.getRoomDetails(GLOBAL_ROOM_ID));
       } catch (error) {
         console.error("Error starting game:", error);
         socket.emit("error", { message: error.message });
@@ -130,9 +128,14 @@ export default function setupSocketServer(io) {
           throw new Error("Only the host can end the game");
         }
 
-        console.log("Ending game...");
+        // Clear the timer before ending the game
+        const existingTimer = gameManager.getRoomTimer(GLOBAL_ROOM_ID);
+        if (existingTimer) {
+          clearInterval(existingTimer);
+          gameManager.clearRoomTimer(GLOBAL_ROOM_ID);
+        }
+
         gameManager.endGame(GLOBAL_ROOM_ID);
-        console.log("Game ended: ", gameManager.getRoomDetails(GLOBAL_ROOM_ID));
         io.to(GLOBAL_ROOM_ID).emit("game_ended", {
           message: "The game has ended by the host",
           room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
@@ -185,9 +188,38 @@ export default function setupSocketServer(io) {
 
         case "reset_scores":
           gameManager.resetAllScores(GLOBAL_ROOM_ID);
+          const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+
+          for (const player of players) {
+            writePlayerDataToFile(player.userId, player);
+          }
+
           io.to(GLOBAL_ROOM_ID).emit("scores_reset", {
-            players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+            message: "Scores have been reset",
+            players,
           });
+
+          break;
+
+        case "update_score":
+          console.log(`Updating score for player: ${data.playerId} to ${data.score}`);
+          if (data.playerId && data.score) {
+            let updatedPlayer = gameManager.updatePlayerScore(
+              GLOBAL_ROOM_ID,
+              data.playerId,
+              data.score
+            );
+
+            writePlayerDataToFile(data.playerId, updatedPlayer);
+            socket.emit("score_updated", {
+              message: "Score updated successfully",
+              score: updatedPlayer.score,
+            });
+            io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+              message: "Scores have been updated",
+              players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+            });
+          }
 
           break;
 
@@ -208,15 +240,6 @@ export default function setupSocketServer(io) {
               room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
             });
           }
-
-          break;
-
-        case "end_game":
-          gameManager.endGame(GLOBAL_ROOM_ID);
-          io.to(GLOBAL_ROOM_ID).emit("game_ended", {
-            message: "The game has ended by the host",
-            room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          });
 
           break;
 
@@ -266,14 +289,21 @@ export default function setupSocketServer(io) {
   });
 
   function handleStartGame(room) {
+    // check for existing timer
+    const existingTimer = gameManager.getRoomTimer(GLOBAL_ROOM_ID);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+      gameManager.clearInterval(GLOBAL_ROOM_ID);
+    }
+
     // start the game
     gameManager.startGame(GLOBAL_ROOM_ID);
     for (const player of room.players) {
       writePlayerDataToFile(player.userId, player);
     }
 
-    const roundDuration = room.gameDuration * 60 * 1000;
-    const endTime = Date.now() + roundDuration;
+    const gameDuration = room.gameDuration * 60 * 1000;
+    const endTime = Date.now() + gameDuration;
 
     // notify all players in the room
     io.to(GLOBAL_ROOM_ID).emit("game_started", {
@@ -288,13 +318,19 @@ export default function setupSocketServer(io) {
         // stop the round
         clearInterval(timer);
 
-        // handle game end
+        // end game
+        // Auto-end the game when timer expires
+        gameManager.endGame(GLOBAL_ROOM_ID);
+        io.to(GLOBAL_ROOM_ID).emit("game_ended", {
+          message: "Time's up! The game has ended.",
+          room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+        });
       } else {
         // send time updates every second
         if (timeLeft % 1000 < 100) {
           io.to(GLOBAL_ROOM_ID).emit("time_update", {
             timeLeft,
-            // formattedTime: formatTime(timeLeft),
+            formattedTime: formatTime(timeLeft),
           });
         }
       }
@@ -406,4 +442,11 @@ function writePlayerDataToFile(playerId, data) {
     console.error("Error writing player data to file:", error);
     throw new Error("Failed to write player data");
   }
+}
+
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }
