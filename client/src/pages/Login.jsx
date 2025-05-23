@@ -58,7 +58,7 @@ export default function Home() {
     setAuthError("");
 
     try {
-      const serverUrl = "http://localhost:3000";
+      const serverUrl = import.meta.env.VITE_PROD_BACKEND_HTTP;
       await socketService.connect(serverUrl, username, password);
 
       // Simulate user data (adjust based on your backend response)

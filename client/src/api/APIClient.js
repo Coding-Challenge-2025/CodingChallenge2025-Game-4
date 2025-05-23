@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/api";
+const API_URL = new URL("/api", import.meta.env.VITE_PROD_BACKEND_HTTP)
 
 export const executeCode = async (code, language) => {
   try {

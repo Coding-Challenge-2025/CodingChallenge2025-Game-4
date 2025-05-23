@@ -27,7 +27,8 @@ export default function Game() {
   ]);
 
   const getShapeById = async (id) => {
-    const response = await fetch(`http://localhost:3000/api/shape/${id}`);
+    console.log("Fetching shape with ID:", import.meta.env.VITE_PROD_BACKEND_HTTP);
+    const response = await fetch(new URL(`/api/shape/${id}`, import.meta.env.VITE_PROD_BACKEND_HTTP));
     if (!response.ok) {
       throw new Error("Failed to fetch shape");
     }
@@ -93,7 +94,7 @@ export default function Game() {
     setGameStatus("running");
 
     try {
-      const response = await fetch("http://localhost:3000/api/code/execute", {
+      const response = await fetch(new URL("/api/code/execute", import.meta.env.VITE_PROD_BACKEND_HTTP), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
