@@ -15,7 +15,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 - [ ] Luu tai khoan (local/session storage)
 - [ ] Xu ly game o player (sub -> diem++ -> update ui) + admin (client diem ++ -> update ui)...
-- [ ] Luu code theo shape (c++/python)
+- [x] Luu code theo shape (c++/python)
 - [ ] Het thoi gian -> disable all
 - [x] Update template
 - [ ] Submit on Run code -> animation when 100%

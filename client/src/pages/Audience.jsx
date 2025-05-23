@@ -1,7 +1,33 @@
 import GridComponent from "../components/GridComponent";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Audience() {
+  const [countdown, setCountdown] = useState(100);
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds < 0) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  // Pull time or other stuff
+  useEffect(() => {
+    let timer;
+
+    try {
+      setCountdown(100);
+    } catch (error) {
+      console.error("Error setting time limit:", error);
+    }
+
+    timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer); // clean up interval
+  }, []);
+
   const [player1Grid, setPlayer1Grid] = useState([
     [2, 1, 1, 1, 1, 6, 7, 8, 9],
     [2, 1, 1, 1, 1, 6, 7, 8, 9],
@@ -55,7 +81,14 @@ export default function Audience() {
 
   return (
     <div>
-      <div className="grid grid-cols-2 grid-rows-2 h-screen">
+      <div className="grid grid-cols-2 grid-rows-2 h-screen relative">
+        <div className="text-2xl rounded p-2 absolute top-[50%] left-[50%] translate-[-50%] z-30 grid grid-cols-1 grid-rows-1">
+          <p className="text-center text-black font-bold">
+            {formatTime(countdown)}
+          </p>
+          <img src="logo.png" alt="" className="w-48" />
+        </div>
+
         <div className="relative">
           <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">
             Player 1
@@ -63,7 +96,7 @@ export default function Audience() {
           <GridComponent grid={player1Grid} />
         </div>
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">
+          <h2 className="text-xl text-black font-bold absolute top-0 right-1 z-20">
             Player 2
           </h2>
           <GridComponent grid={player2Grid} />
@@ -75,7 +108,7 @@ export default function Audience() {
           <GridComponent grid={player3Grid} />
         </div>
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">
+          <h2 className="text-xl text-black font-bold absolute top-0 right-1 z-20">
             Player 4
           </h2>
           <GridComponent grid={player4Grid} />
