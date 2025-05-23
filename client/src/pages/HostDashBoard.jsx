@@ -97,7 +97,6 @@ export default function HostDashboard() {
 
   const confirmKickPlayer = () => {
     if (selectedPlayer) {
-      console.log("Kicking player:", selectedPlayer);
       socketService.adminCommand("kick_player", {
         playerId: selectedPlayer.socketId,
         playerName: selectedPlayer.username,
@@ -118,7 +117,7 @@ export default function HostDashboard() {
 
   const handleEndGame = () => {
     if (window.confirm("Are you sure you want to end the current game?")) {
-      socketService.adminCommand("end_game", {});
+      socketService.endGame();
     }
   };
 

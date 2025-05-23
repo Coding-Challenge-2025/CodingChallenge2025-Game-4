@@ -20,14 +20,12 @@ const AuthenticatedRoute = ({ children }) => {
     return <LoadingScreen />;
   }
 
-  // Check if user is authenticated and socket connection is established
   if (!user) {
     return <Navigate to="/" />;
   }
 
   return children;
 };
-
 
 function App() {
   return (

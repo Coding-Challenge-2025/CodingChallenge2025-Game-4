@@ -1,7 +1,7 @@
 {
   "socketId": null,
-  "userId": 2,
-  "username": "player2",
+  "userId": 4,
+  "username": "player4",
   "score": 0,
   "isHost": false,
   "status": "waiting"

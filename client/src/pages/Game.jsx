@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import VoxelRenderer from "../components/VoxelRenderer";
 import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import { getCodeTemplate } from "../utils/code-template";
@@ -21,7 +20,6 @@ export default function Game() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Warn before refresh or close
     const handleBeforeUnload = (event) => {
       event.preventDefault();
       event.returnValue =
@@ -29,7 +27,6 @@ export default function Game() {
       return "Are you sure you want to refresh? Your game progress may be disrupted.";
     };
 
-    // Block F5 and Ctrl+R/Cmd+R
     const handleKeyDown = (event) => {
       if (
         event.key === "F5" ||
@@ -46,90 +43,51 @@ export default function Game() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-  // For shape selection button
-  const [shapeOptions, setShapeOptions] = useState([
-    { id: 1, name: "Shape 1" },
-    { id: 2, name: "Shape 2" },
-    { id: 3, name: "Shape 3" },
-    { id: 4, name: "Shape 4" },
-  ]);
-
-  const getShapeById = async (id) => {
-    const response = await fetch(`http://localhost:3000/api/shape/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch shape");
-    }
-
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error("Failed to fetch shape");
-    }
-
-    const result = data.shape.matrix;
-    return result;
-  };
-
-  useEffect(() => {
+    // Register socket handlers
     socketService.registerHandlers({
-      playerKicked: (data) => {
-        console.log("Player kicked:", data);
-
-        // check if the user is kicked
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (data.playerName === user.username) {
-          alert("You have been kicked from the game. Reason: " + data.reason);
-
-          socketService.disconnect();
-          localStorage.removeItem("user");
-          window.location.href = "/";
-        } else {
-          console.log("Player kicked:", data);
-        }
-      },
-
       kicked: (data) => {
         console.log("You have been kicked:", data);
-
-        // check if the user is kicked
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (user) {
-          alert("You have been kicked from the game. Reason: " + data.reason);
-          socketService.disconnect();
-          localStorage.removeItem("user");
-          window.location.href = "/";
-        } else {
-          alert("You have been logged out. Please log in again.");
-          localStorage.removeItem("user");
-          window.location.href = "/";
-        }
+        alert("You have been kicked from the game. Reason: " + data.reason);
+        socketService.disconnect();
+        localStorage.removeItem("user");
+        navigate("/");
       },
-
       gameEnded: (data) => {
-        // Handle game end event
+        console.log("Game ended:", data);
         alert("Game has ended by the host. Redirecting...");
-
-        // redirect to the waiting room
         const user = JSON.parse(localStorage.getItem("user"));
         if (user) {
           navigate("/waiting-room", { state: { username: user.username } });
         } else {
           alert("You have been logged out. Please log in again.");
           localStorage.removeItem("user");
-          window.location.href = "/";
+          navigate("/");
         }
+      },
+      roomUpdated: (data) => {
+        console.log("Room updated:", data);
+
+        // check if game is in progress
+        if (data.room) {
+          if (!data.room.gameInProgress) {
+            navigate("/waiting-room", { state: { username: data.username } });
+          }
+        }
+      },
+      error: (error) => {
+        console.error("Socket error:", error);
+        alert("An error occurred: " + error.message);
       },
     });
 
+    socketService.requestRoomDetails();
+
     return () => {
-      socketService.clearHandlers();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("keydown", handleKeyDown);
+      socketService.clearHandlers(); // Clear specific handlers
     };
-  }, []);
+  }, [navigate]);
 
   // Update code template when language changes
   useEffect(() => {
@@ -198,8 +156,8 @@ export default function Game() {
     setChallengeId(nextId);
 
     try {
-      const newShape = await getShapeById(nextId); // ✅ await the Promise
-      setTargetShape(newShape); // ✅ set actual resolved value
+      // const newShape = await getShapeById(nextId); // ✅ await the Promise
+      // setTargetShape(newShape); // ✅ set actual resolved value
     } catch (error) {
       console.error("Failed to fetch new shape:", error);
     }
@@ -259,11 +217,11 @@ export default function Game() {
                   newChallenge();
                 }}
               >
-                {shapeOptions.map((shape) => (
+                {/* {shapeOptions.map((shape) => (
                   <option key={shape.id} value={shape.id}>
                     {shape.name}
                   </option>
-                ))}
+                ))} */}
               </select>
             </div>
           </div>

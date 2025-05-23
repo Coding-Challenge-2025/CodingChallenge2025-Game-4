@@ -1,8 +1,8 @@
 {
-  "socketId": null,
+  "socketId": "hnb0RbEsyNe26qPHAAAj",
   "userId": 0,
   "username": "admin",
   "score": 0,
   "isHost": true,
-  "status": "disconnected"
+  "status": "waiting"
 }

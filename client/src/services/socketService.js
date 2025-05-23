@@ -132,8 +132,6 @@ class SocketService {
 
     this.socket.on("player_kicked", (data) => {
       if (this.handlers.playerKicked) {
-        console.log("Player kicked event received:", data);
-
         this.handlers.playerKicked(data);
       }
     });
@@ -147,19 +145,6 @@ class SocketService {
     this.socket.on("player_disconnected", (data) => {
       if (this.handlers.playerDisconnected) {
         this.handlers.playerDisconnected(data);
-      }
-    });
-
-    this.socket.on("new_host", (data) => {
-      if (this.handlers.newHost) {
-        this.handlers.newHost(data);
-      }
-    });
-
-    this.socket.on("host_left", (data) => {
-      console.log("Host left event received:", data);
-      if (this.handlers.host_left) {
-        this.handlers.host_left(data);
       }
     });
 
@@ -208,18 +193,6 @@ class SocketService {
     this.socket.on("scores_updated", (data) => {
       if (this.handlers.scoresUpdated) {
         this.handlers.scoresUpdated(data);
-      }
-    });
-
-    this.socket.on("round_ended", (data) => {
-      if (this.handlers.roundEnded) {
-        this.handlers.roundEnded(data);
-      }
-    });
-
-    this.socket.on("new_round_started", (data) => {
-      if (this.handlers.newRoundStarted) {
-        this.handlers.newRoundStarted(data);
       }
     });
 
@@ -273,22 +246,44 @@ class SocketService {
   }
 
   registerHandlers(handlers) {
-    this.handlers = handlers;
+    // Merge new handlers with existing ones
+    this.handlers = { ...this.handlers, ...handlers };
+
+    // Re-register socket listeners to ensure all handlers are active
+    if (this.socket && this.socket.connected) {
+      Object.keys(this.handlers).forEach((event) => {
+        this.socket.off(event); // Remove existing listener to prevent duplicates
+        this.socket.on(event, (data) => {
+          if (this.handlers[event]) {
+            this.handlers[event](data);
+          }
+        });
+      });
+    }
   }
 
-  // Remove specific handlers by event name
   removeHandlers(eventNames) {
     if (Array.isArray(eventNames)) {
       eventNames.forEach((name) => {
+        if (this.socket) {
+          this.socket.off(name); // Remove socket listener
+        }
         delete this.handlers[name];
       });
     } else if (typeof eventNames === "string") {
+      if (this.socket) {
+        this.socket.off(eventNames);
+      }
       delete this.handlers[eventNames];
     }
   }
 
-  // Clear all handlers
   clearHandlers() {
+    if (this.socket) {
+      Object.keys(this.handlers).forEach((event) => {
+        this.socket.off(event); // Remove all socket listeners
+      });
+    }
     this.handlers = {};
   }
 
@@ -298,6 +293,15 @@ class SocketService {
       this.socket.emit("start_game");
     } else {
       console.error("Cannot start game: Socket not connected");
+    }
+  }
+
+  endGame() {
+    if (this.socket && this.socket.connected) {
+      console.log("Ending game...");
+      this.socket.emit("end_game");
+    } else {
+      console.error("Cannot end game: Socket not connected");
     }
   }
 

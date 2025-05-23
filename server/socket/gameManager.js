@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -78,7 +77,20 @@ class GameManager {
       throw new Error(`Player ${playerId} is already in the room`);
     }
 
-    room.players.push(playerData);
+    room.players.push({
+      ...playerData,
+      socketId: playerSocketId,
+    });
+  }
+
+  checkPlayerInRoom(roomId, playerId) {
+    const room = this.getRoom(roomId);
+
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    return room.players.some((player) => player.userId === playerId);
   }
 
   removePlayerFromRoom(roomId, playerSocketId) {
@@ -147,8 +159,9 @@ class GameManager {
     room.gameInProgress = true;
 
     room.players.forEach((player) => {
-      player.score = 0;
-      player.status = "playing";
+      if (!player.isHost) {
+        player.status = "playing";
+      }
     });
   }
 
@@ -159,8 +172,12 @@ class GameManager {
     }
 
     room.gameInProgress = false;
+
+    // change all players status to waiting (except the host)
     room.players.forEach((player) => {
-      player.status = "waiting";
+      if (player.socketId !== room.hostId) {
+        player.status = "waiting";
+      }
     });
   }
 
