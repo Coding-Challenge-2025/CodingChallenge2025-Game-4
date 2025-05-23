@@ -1,6 +1,5 @@
 import { useState } from "react";
 import GridComponent from "../components/GridComponent";
-import { Grid } from "@react-three/drei";
 
 export default function Showcase() {
   const [player1Grid, setPlayer1Grid] = useState([
