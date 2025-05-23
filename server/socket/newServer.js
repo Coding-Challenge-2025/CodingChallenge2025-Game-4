@@ -42,43 +42,54 @@ export default function setupSocketServer(io) {
       return;
     }
 
-    let player = checkPlayerExists(socket.id, socket.user);
-    socket.join(GLOBAL_ROOM_ID);
+    try {
+      let player = checkPlayerExists(socket.id, socket.user);
+      socket.join(GLOBAL_ROOM_ID);
 
-    const playerInRoom = gameManager.checkPlayerInRoom(
-      GLOBAL_ROOM_ID,
-      socket.user.id
-    );
-    if (!playerInRoom) {
-      // Add the player to the global room
-      gameManager.addPlayerToRoom(GLOBAL_ROOM_ID, socket.id, player);
-      writePlayerDataToFile(socket.user.id, player);
-    } else {
-      // Update the player socket ID
-      const oldSocketId = player.socketId;
+      const playerInRoom = gameManager.checkPlayerInRoom(
+        GLOBAL_ROOM_ID,
+        socket.user.id
+      );
+      if (!playerInRoom) {
+        // Add the player to the global room
+        gameManager.addPlayerToRoom(GLOBAL_ROOM_ID, socket.id, player);
+        writePlayerDataToFile(socket.user.id, player);
+      } else {
+        // Update the player socket ID
+        const oldSocketId = player.socketId;
 
-      console.log(`Reconnecting player: ${player}`);
+        console.log(`Reconnecting player: ${player}`);
 
-      // Update the socket ID in the global room
-      if (oldSocketId !== socket.id) {
-        console.log("Updating player socket ID:", oldSocketId, "to", socket.id);
-        const updatedPlayer = gameManager.updatePlayerInRoom(
-          GLOBAL_ROOM_ID,
-          oldSocketId,
-          {
-            ...player,
-            socketId: socket.id,
-          }
-        );
+        // Update the socket ID in the global room
+        if (oldSocketId !== socket.id) {
+          console.log(
+            "Updating player socket ID:",
+            oldSocketId,
+            "to",
+            socket.id
+          );
+          const updatedPlayer = gameManager.updatePlayerInRoom(
+            GLOBAL_ROOM_ID,
+            oldSocketId,
+            {
+              ...player,
+              socketId: socket.id,
+            }
+          );
 
-        // Update JSON file for user
-        writePlayerDataToFile(socket.user.id, updatedPlayer);
+          // Update JSON file for user
+          writePlayerDataToFile(socket.user.id, updatedPlayer);
 
-        socket.emit("reconnected", {
-          roomId: GLOBAL_ROOM_ID,
-          playerId: socket.user.id,
-        });
+          socket.emit("reconnected", {
+            roomId: GLOBAL_ROOM_ID,
+            playerId: socket.user.id,
+          });
+        }
       }
+    } catch (error) {
+      // console.error("Error during connection:", error);
+      socket.emit("error", error.message);
+      return;
     }
 
     // Emit event to the client
@@ -226,15 +237,9 @@ export default function setupSocketServer(io) {
 
         case "change_settings":
           if (data.settings) {
-            if (data.settings.name)
-              gameManager.updateRoomName(GLOBAL_ROOM_ID, data.settings.name);
-            if (data.settings.maxPlayers)
-              gameManager.updateMaxPlayers(
-                GLOBAL_ROOM_ID,
-                data.settings.maxPlayers
-              );
-
-            updateRoomSettings(data.settings);
+            console.log("Updating room settings:", data.settings);
+            gameManager.updateRoomSettings(GLOBAL_ROOM_ID, data.settings);
+            updateRoomSettingsFile(data.settings);
 
             io.to(GLOBAL_ROOM_ID).emit("settings_changed", {
               settings: data.settings,
@@ -442,6 +447,19 @@ function writePlayerDataToFile(playerId, data) {
   } catch (error) {
     console.error("Error writing player data to file:", error);
     throw new Error("Failed to write player data");
+  }
+}
+
+function updateRoomSettingsFile(settings) {
+  const settingsPath = path.join(__dirname, "../data/room_settings.json");
+
+  try {
+    const data = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+    data.settings = settings;
+    fs.writeFileSync(settingsPath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Error writing room settings to file:", error);
+    throw new Error("Failed to write room settings");
   }
 }
 

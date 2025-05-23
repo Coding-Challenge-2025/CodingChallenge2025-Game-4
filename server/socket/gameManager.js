@@ -17,13 +17,12 @@ class GameManager {
     const room = {
       id: roomId,
       name: options.name || "Default Room",
-      minPlayers: options.minPlayers || 2,
+      minPlayersToStart: options.minPlayersToStart || 2,
       maxPlayers: options.maxPlayers || 4,
       createdBy: options.createdBy,
       createdAt: Date.now(),
       players: [],
       gameDuration: options.gameDuration || 10,
-
       gameInProgress: false,
       gameStartTime: null,
       gameEndTime: null,
@@ -49,7 +48,7 @@ class GameManager {
     return {
       id: room.id,
       name: room.name,
-      minPlayers: room.minPlayers,
+      minPlayersToStart: room.minPlayersToStart,
       maxPlayers: room.maxPlayers,
       createdBy: room.createdBy,
       createdAt: room.createdAt,
@@ -69,7 +68,7 @@ class GameManager {
       throw new Error(`Room ${roomId} does not exist`);
     }
 
-    if (room.players.length >= room.maxPlayers) {
+    if (room.players.length > room.maxPlayers) {
       throw new Error(`Room ${roomId} is full`);
     }
 
@@ -267,22 +266,18 @@ class GameManager {
     room.hostId = player.userId;
   }
 
-  updateRoomName(roomId, name) {
+  updateRoomSettings(roomId, settings) {
     const room = this.getRoom(roomId);
     if (!room) {
       throw new Error(`Room ${roomId} does not exist`);
     }
 
-    room.name = name;
-  }
+    room.name = settings.name;
+    room.minPlayersToStart = settings.minPlayersToStart;
+    room.maxPlayers = settings.maxPlayers;
+    room.gameDuration = settings.gameDuration;
 
-  updateMaxPlayers(roomId, maxPlayers) {
-    const room = this.getRoom(roomId);
-    if (!room) {
-      throw new Error(`Room ${roomId} does not exist`);
-    }
-
-    room.maxPlayers = maxPlayers;
+    return room;
   }
 }
 

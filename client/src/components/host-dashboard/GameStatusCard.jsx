@@ -58,7 +58,7 @@ export default function GameStatusCard({
           </div>
           <div className="flex flex-wrap gap-2">
             {!room?.gameInProgress &&
-              players.length >= roomSettings.minPlayersToStart && (
+              players.length > roomSettings.minPlayersToStart && (
                 <button
                   onClick={onStartGame}
                   className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"

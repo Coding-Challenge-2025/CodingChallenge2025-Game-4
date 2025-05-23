@@ -8,6 +8,13 @@ import KickPlayerModal from "../components/host-dashboard/KickPlayerModal";
 import LoadingScreen from "../components/host-dashboard/LoadingScreen";
 import ErrorScreen from "../components/host-dashboard/ErrorScreen";
 
+const defaultRoomSettings = {
+  name: "Coding Challenge 2025",
+  maxPlayers: 4,
+  minPlayersToStart: 2,
+  gameDuration: 10,
+};
+
 export default function HostDashboard() {
   const [players, setPlayers] = useState([]);
   const [room, setRoom] = useState(null);
@@ -15,12 +22,7 @@ export default function HostDashboard() {
   const [kickReason, setKickReason] = useState("");
   const [showKickModal, setShowKickModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [roomSettings, setRoomSettings] = useState({
-    name: "VoxelCode Arena",
-    maxPlayers: 4,
-    roundDuration: 3,
-    minPlayersToStart: 2,
-  });
+  const [roomSettings, setRoomSettings] = useState(defaultRoomSettings);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState("");
@@ -41,7 +43,9 @@ export default function HostDashboard() {
         setRoom(data.room);
       },
       roomUpdated: (data) => {
+        console.log("Room updated:", data.room);
         setRoom(data.room);
+        setRoomSettings(getRoomSettings(data.room));
         setPlayers(data.room.players);
       },
       gameStarted: (data) => {
@@ -192,3 +196,14 @@ export default function HostDashboard() {
     </div>
   );
 }
+
+function getRoomSettings(room) {
+  return {
+    name: room.name,
+    maxPlayers: room.maxPlayers,
+    minPlayersToStart: room.minPlayersToStart,
+    gameDuration: room.gameDuration
+  };
+}
+
+
