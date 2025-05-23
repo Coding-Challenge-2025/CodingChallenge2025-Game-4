@@ -6,7 +6,6 @@ import socketService from "../services/socketService";
 import { getCodeTemplate } from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
 
-
 export default function Game() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
@@ -17,8 +16,8 @@ export default function Game() {
   const [isRunning, setIsRunning] = useState(false);
   const [gameStatus, setGameStatus] = useState("idle");
   const [challengeId, setChallengeId] = useState(1);
-  const [submittable, setSubmittable] = useState(false);
   const [timeLeft, setTimeLeft] = useState("");
+  const [players, setPlayers] = useState([]);
   const navigate = useNavigate();
 
   // Add refs to track if events have been handled
@@ -54,10 +53,7 @@ export default function Game() {
   };
 
   const getShapeById = async (id) => {
-    console.log(
-      "Fetching shape with ID:",
-      id
-    );
+    console.log("Fetching shape with ID:", id);
     const response = await fetch(
       new URL(`/api/shape/${id}`, import.meta.env.VITE_PROD_BACKEND_HTTP)
     );
@@ -117,6 +113,13 @@ export default function Game() {
         localStorage.removeItem("user");
         navigate("/");
       },
+      playerKicked: (data) => {
+        if (kickedHandled.current) return; // Prevent duplicate handling
+
+        console.log("Player kicked:", data);
+        setPlayers(data.players);
+        alert("Annoucement: " + data.message);
+      },
       gameEnded: (data) => {
         if (gameEndedHandled.current) return; // Prevent duplicate handling
         gameEndedHandled.current = true;
@@ -141,6 +144,8 @@ export default function Game() {
             navigate("/waiting-room", { state: { username: data.username } });
           }
 
+          setPlayers(data.room.players);
+
           // Update the game status based on the room data
           const currentPlayer = JSON.parse(localStorage.getItem("user"));
           const player = data.room.players.find(
@@ -159,7 +164,22 @@ export default function Game() {
         if (player) {
           setScore(player.score);
         }
+
+        setPlayers(data.players);
       },
+      scoresReset: (data) => {
+        const currentPlayer = JSON.parse(localStorage.getItem("user"));
+        const player = data.players.find(
+          (player) => player.username === currentPlayer.username
+        );
+        if (player) {
+          setScore(player.score);
+        }
+        alert("Scores have been reset by the host.");
+
+        setPlayers(data.players);
+      },
+
       timeUpdate: (data) => {
         setTimeLeft(data.timeLeft);
         // Handle time update logic here
@@ -187,7 +207,6 @@ export default function Game() {
     setOutputShape([]);
     setScore(0);
     setGameStatus("idle");
-    setSubmittable(false);
   }, [language, challengeId]);
 
   const handleLanguageChange = (newLanguage) => {
@@ -236,7 +255,6 @@ export default function Game() {
 
         if (data.similarity === 100) {
           setGameStatus("success");
-          setSubmittable(true);
         } else {
           setGameStatus("failed");
         }
@@ -280,7 +298,7 @@ export default function Game() {
             <GameHeader
               timeLeft={timeLeft}
               playerScore={score}
-              submittable={submittable}
+              contestants={convertPlayersToContestants(players)}
             />
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Code Editor</h2>
@@ -399,4 +417,38 @@ export default function Game() {
       </div>
     </main>
   );
+}
+
+function convertPlayersToContestants(players) {
+  // Filter out players who are not currently playing
+  const activePlayers = players.filter((p) => p.status === "playing");
+
+  // Sort by score descending
+  activePlayers.sort((a, b) => b.score - a.score);
+
+  // Assign ranks (ties get same rank)
+  let rank = 1;
+  let previousScore = null;
+  let skip = 0;
+
+  const contestants = activePlayers.map((player, index) => {
+    if (player.score !== previousScore) {
+      rank = index + 1;
+      rank += skip;
+      skip = 0;
+    } else {
+      skip++;
+    }
+
+    previousScore = player.score;
+
+    return {
+      id: player.userId,
+      name: player.username,
+      score: player.score,
+      rank: rank,
+    };
+  });
+
+  return contestants;
 }

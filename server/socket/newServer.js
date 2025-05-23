@@ -178,9 +178,8 @@ export default function setupSocketServer(io) {
             }
 
             io.to(GLOBAL_ROOM_ID).emit("player_kicked", {
-              playerId: data.playerId,
-              playerName: data.playerName,
-              reasion: data.reason || "You have been kicked by the host",
+              message: `Player ${data.playerName} has been kicked`,
+              players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
             });
           }
 
@@ -202,7 +201,9 @@ export default function setupSocketServer(io) {
           break;
 
         case "update_score":
-          console.log(`Updating score for player: ${data.playerId} to ${data.score}`);
+          console.log(
+            `Updating score for player: ${data.playerId} to ${data.score}`
+          );
           if (data.playerId && data.score) {
             let updatedPlayer = gameManager.updatePlayerScore(
               GLOBAL_ROOM_ID,

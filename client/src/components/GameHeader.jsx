@@ -1,23 +1,6 @@
-import { useState } from "react";
 import { Menubar } from "radix-ui";
 
-export default function GameHeader({ timeLeft, playerScore }) {
-  const [contestants, setContestants] = useState([]);
-
-  const getContestants = async () => {
-    try {
-      setContestants([
-        { id: 1, name: "Player 1", score: 15, rank: 1 },
-        { id: 2, name: "Player 2", score: 12, rank: 2 },
-        { id: 3, name: "Player 3", score: 10, rank: 3 },
-        { id: 4, name: "Player 4", score: 8, rank: 4 },
-        { id: 5, name: "Player 5", score: 8, rank: 4 },
-      ]);
-    } catch (error) {
-      console.error("Error fetching contestants:", error);
-    }
-  };
-
+export default function GameHeader({ timeLeft, playerScore, contestants }) {
   return (
     <header className="bg-gray-800 border-b border-gray-700">
       <div className="container mx-auto px-4 py-6">
@@ -47,7 +30,7 @@ export default function GameHeader({ timeLeft, playerScore }) {
                 <Menubar.Trigger>
                   <div
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md"
-                    onClick={getContestants}
+                    onClick={() => {}}
                   >
                     Leaderboard
                   </div>

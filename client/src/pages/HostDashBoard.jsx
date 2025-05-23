@@ -63,7 +63,8 @@ export default function HostDashboard() {
         setRoom(data.room);
       },
       playerKicked: (data) => {
-        setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
+        setPlayers(data.room.players);
+        setShowKickModal(false);
       },
       scores_reset: (data) => {
         setPlayers(data.players);
