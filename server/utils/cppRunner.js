@@ -61,7 +61,7 @@ const executeCpp = async (code) => {
 function compileCpp(sourcePath, outputPath) {
   return new Promise((resolve, reject) => {
     const compiler = os.platform() === "win32" ? "g++" : "g++";
-    const args = ["-std=c++17", sourcePath, "-o", outputPath];
+    const args = ["-std=c++17", "-O1", "-pipe", sourcePath, "-o", outputPath];
 
     const process = spawn(compiler, args);
 

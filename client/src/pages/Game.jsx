@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
-import { getCodeTemplate } from "../utils/code-template";
 import GridComponent from "../components/GridComponent";
 import socketService from "../services/socketService";
+import { getCodeTemplate } from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
+
 
 export default function Game() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
+  const [codeStore, setCodeStore] = useState(new Map());
   const [targetShape, setTargetShape] = useState([]);
   const [outputShape, setOutputShape] = useState([]);
   const [score, setScore] = useState(0);
@@ -23,6 +25,57 @@ export default function Game() {
   const gameEndedHandled = useRef(false);
   const kickedHandled = useRef(false);
 
+  // For shape selection button
+  const [shapeOptions, setShapeOptions] = useState([
+    { id: 1, name: "Hình 1" },
+    { id: 2, name: "Hình 2" },
+    { id: 3, name: "Hình 3" },
+    { id: 4, name: "Hình 4" },
+  ]);
+
+  // Load code from localStorage based on language and challengeId
+  const loadCodeFromStorage = (lang, id) => {
+    console.log(`Loading ${lang} code of shape ${id}`);
+    const key = `code_${lang}_${id}`;
+    const storedCode = localStorage.getItem(key);
+    return storedCode || getCodeTemplate(lang);
+  };
+
+  // Save code to localStorage and update codeStore
+  const saveCodeToStorage = (lang, id, newCode) => {
+    console.log(`Saving code of ${id} in ${lang} to localStorage:`);
+    const key = `code_${lang}_${id}`;
+    localStorage.setItem(key, newCode);
+    setCodeStore((prev) => {
+      const newStore = new Map(prev);
+      newStore.set(`${lang}_${id}`, newCode);
+      return newStore;
+    });
+  };
+
+  const getShapeById = async (id) => {
+    console.log(
+      "Fetching shape with ID:",
+      id
+    );
+    const response = await fetch(
+      new URL(`/api/shape/${id}`, import.meta.env.VITE_PROD_BACKEND_HTTP)
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch shape");
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error("Failed to fetch shape");
+    }
+
+    const result = data.shape.matrix;
+    console.log("Fetched shape:", result);
+    return result;
+  };
+
+  // Load random target shape and code template based on language
   useEffect(() => {
     // Prevent page refresh during gameplay
     let alertShown = false;
@@ -98,9 +151,6 @@ export default function Game() {
           }
         }
       },
-      scoresReset: (data) => {
-        setScore(0);
-      },
       scoresUpdated: (data) => {
         const currentPlayer = JSON.parse(localStorage.getItem("user"));
         const player = data.players.find(
@@ -133,12 +183,12 @@ export default function Game() {
 
   // Update code template when language changes
   useEffect(() => {
-    setCode(getCodeTemplate(language));
+    setCode(loadCodeFromStorage(language, challengeId));
     setOutputShape([]);
     setScore(0);
     setGameStatus("idle");
     setSubmittable(false);
-  }, [language]);
+  }, [language, challengeId]);
 
   const handleLanguageChange = (newLanguage) => {
     if (newLanguage !== language) {
@@ -147,26 +197,36 @@ export default function Game() {
       );
       if (confirmChange) {
         setLanguage(newLanguage);
+        setCode(loadCodeFromStorage(newLanguage, challengeId));
       }
     }
   };
+
+  // useEffect(() => {
+  //   if (code) {
+  //     saveCodeToStorage(language, challengeId, code);
+  //   }
+  // }, [code, language, challengeId]);
 
   const runCode = async () => {
     setIsRunning(true);
     setGameStatus("running");
 
     try {
-      const response = await fetch("http://localhost:3000/api/code/execute", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: 1, // adjust if needed
-          language,
-          code,
-        }),
-      });
+      const response = await fetch(
+        new URL("/api/code/execute", import.meta.env.VITE_BACKEND_HTTP),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            targetId: 1, // adjust if needed
+            language,
+            code,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -193,13 +253,15 @@ export default function Game() {
   };
 
   // Generate a new target shape
-  const newChallenge = async () => {
-    const nextId = challengeId === 4 ? 1 : challengeId + 1;
+  const newChallenge = async (nextId) => {
+    saveCodeToStorage(language, challengeId, code);
+    console.log("Next challenge ID:", nextId);
     setChallengeId(nextId);
 
     try {
-      // const newShape = await getShapeById(nextId); // ✅ await the Promise
-      // setTargetShape(newShape); // ✅ set actual resolved value
+      const newShape = await getShapeById(nextId);
+      setTargetShape(newShape); // ✅ set actual resolved value
+      setCode(loadCodeFromStorage(language, nextId));
     } catch (error) {
       console.error("Failed to fetch new shape:", error);
     }
@@ -250,22 +312,21 @@ export default function Game() {
                 onClick={runCode}
                 disabled={isRunning}
               >
-                {isRunning ? "Running..." : "Run Code"}
+                {isRunning ? "Đang xử lý..." : "Chạy code"}
               </button>
               <select
                 name="shape"
                 id="shape"
-                className="bg-purple-600 hover:bg-purple-700 rounded-md font-medium text-sm"
+                className="bg-purple-600 hover:bg-purple-700 rounded-md font-medium text-sm p-1"
                 onChange={(e) => {
-                  setChallengeId(e.target.value);
-                  newChallenge();
+                  newChallenge(e.target.value);
                 }}
               >
-                {/* {shapeOptions.map((shape) => (
+                {shapeOptions.map((shape) => (
                   <option key={shape.id} value={shape.id}>
                     {shape.name}
                   </option>
-                ))} */}
+                ))}
               </select>
             </div>
           </div>
@@ -327,7 +388,7 @@ export default function Game() {
                     <GridComponent grid={outputShape} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
-                      Run your code to see output
+                      Chạy code để thấy kết quả
                     </div>
                   )}
                 </div>

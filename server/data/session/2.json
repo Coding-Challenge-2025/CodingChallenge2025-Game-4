@@ -2,7 +2,7 @@
   "socketId": null,
   "userId": 2,
   "username": "player2",
-  "score": 0,
+  "score": 456,
   "isHost": false,
-  "status": "waiting"
+  "status": "playing"
 }

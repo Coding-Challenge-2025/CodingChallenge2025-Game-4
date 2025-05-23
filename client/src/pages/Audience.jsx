@@ -1,30 +1,120 @@
 import GridComponent from "../components/GridComponent";
-import {useState} from "react"
+import { useEffect, useState } from "react";
 
 export default function Audience() {
-  const [player1Grid, setPlayer1Grid] = useState([]);
-  const [player2Grid, setPlayer2Grid] = useState([]);
-  const [player3Grid, setPlayer3Grid] = useState([]);
-  const [player4Grid, setPlayer4Grid] = useState([]);
-  
+  const [countdown, setCountdown] = useState(100);
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds < 0) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  // Pull time or other stuff
+  useEffect(() => {
+    let timer;
+
+    try {
+      setCountdown(100);
+    } catch (error) {
+      console.error("Error setting time limit:", error);
+    }
+
+    timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer); // clean up interval
+  }, []);
+
+  const [player1Grid, setPlayer1Grid] = useState([
+    [2, 1, 1, 1, 1, 6, 7, 8, 9],
+    [2, 1, 1, 1, 1, 6, 7, 8, 9],
+    [1, 2, 1, 1, 1, 6, 7, 8, 9],
+    [1, 1, 2, 1, 1, 6, 7, 8, 9],
+    [1, 1, 1, 2, 1, 6, 7, 8, 9],
+    [1, 1, 1, 1, 2, 6, 7, 8, 9],
+    [1, 1, 1, 1, 2, 6, 7, 8, 9],
+    [1, 1, 1, 1, 2, 6, 7, 8, 9],
+    [1, 1, 1, 1, 2, 6, 7, 8, 9],
+    [1, 1, 1, 1, 2, 6, 7, 8, 9],
+  ]);
+  const [player2Grid, setPlayer2Grid] = useState([
+    [1, 1, 1, 0, 3, 6, 7, 8, 9],
+    [1, 4, 2, 5, 3, 6, 0, 8, 9],
+    [1, 0, 7, 3, 3, 6, 7, 8, 9],
+    [1, 1, 3, 0, 3, 6, 7, 8, 9],
+    [1, 1, 1, 3, 3, 6, 7, 8, 9],
+    [1, 1, 1, 1, 3, 6, 7, 0, 9],
+    [1, 1, 1, 1, 3, 6, 7, 8, 9],
+    [1, 1, 1, 1, 3, 6, 7, 8, 9],
+    [1, 1, 1, 1, 3, 6, 7, 8, 0],
+    [1, 1, 1, 1, 3, 6, 7, 8, 9],
+  ]);
+
+  const [player3Grid, setPlayer3Grid] = useState([
+    [1, 1, 4, 0, 4, 6, 7, 8, 9],
+    [1, 2, 4, 5, 4, 6, 0, 8, 9],
+    [1, 0, 7, 4, 4, 6, 7, 8, 9],
+    [1, 1, 4, 0, 4, 6, 7, 8, 9],
+    [1, 1, 1, 4, 4, 6, 7, 8, 9],
+    [1, 1, 1, 1, 4, 6, 7, 0, 9],
+    [1, 1, 1, 1, 4, 6, 7, 8, 9],
+    [1, 1, 1, 1, 4, 6, 7, 8, 9],
+    [1, 1, 1, 1, 4, 6, 7, 8, 0],
+    [1, 1, 1, 1, 4, 6, 7, 8, 9],
+  ]);
+
+  const [player4Grid, setPlayer4Grid] = useState([
+    [1, 1, 5, 0, 5, 6, 7, 8, 9],
+    [1, 2, 5, 3, 5, 6, 0, 8, 9],
+    [1, 0, 7, 5, 5, 6, 7, 8, 9],
+    [1, 1, 5, 0, 5, 6, 7, 8, 9],
+    [1, 1, 1, 5, 5, 6, 7, 8, 9],
+    [1, 1, 1, 1, 5, 6, 7, 0, 9],
+    [1, 1, 1, 1, 5, 6, 7, 8, 9],
+    [1, 1, 1, 1, 5, 6, 7, 8, 9],
+    [1, 1, 1, 1, 5, 6, 7, 8, 0],
+    [1, 1, 1, 1, 5, 6, 7, 8, 9],
+  ]);
+
   return (
     <div>
-      <div className="grid grid-cols-2 grid-rows-2 h-screen">
+      <div className="grid grid-cols-2 grid-rows-2 h-screen relative">
+        <div className="text-2xl rounded p-2 absolute top-[50%] left-[50%] translate-[-50%] z-30 grid grid-cols-1 grid-rows-1">
+          <p className={`text-center font-bold ${countdown > 60 ? 'text-black' : 'text-red-500'}`}>
+            {formatTime(countdown)}
+          </p>
+          <img src="logo.png" alt="" className="w-48" />
+          {(countdown <= 0) && (
+            <a href="/showcase" className="px-3 py-1 text-lg rounded-md text-white bg-blue-600 font-bold p-6 text-center">Go to result page</a>
+          )}
+        </div>
+
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">Player 1</h2>
-          <GridComponent grid={player1Grid}/>
+          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">
+            Player 1
+          </h2>
+          <GridComponent grid={player1Grid} />
         </div>
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">Player 1</h2>
-          <GridComponent grid={player1Grid}/>
+          <h2 className="text-xl text-black font-bold absolute top-0 right-1 z-20">
+            Player 2
+          </h2>
+          <GridComponent grid={player2Grid} />
         </div>
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">Player 1</h2>
-          <GridComponent grid={player1Grid}/>
+          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">
+            Player 3
+          </h2>
+          <GridComponent grid={player3Grid} />
         </div>
         <div className="relative">
-          <h2 className="text-xl text-black font-bold absolute top-0 left-1 z-20">Player 1</h2>
-          <GridComponent grid={player1Grid}/>
+          <h2 className="text-xl text-black font-bold absolute top-0 right-1 z-20">
+            Player 4
+          </h2>
+          <GridComponent grid={player4Grid} />
         </div>
       </div>
     </div>
