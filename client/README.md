@@ -20,8 +20,8 @@ If you are developing a production application, we recommend using TypeScript wi
 - [x] Update template
 - [ ] Submit on Run code -> animation when 100%
 - [x] No block on wrong color id
-- [ ] Audience mode
-- [ ] Show case mode
+- [x] Audience mode
+- [x] Show case mode
 
 Render 2.5D:
 - [x] Hiển thị thông tin ô khi hover (tọa độ, màu)
