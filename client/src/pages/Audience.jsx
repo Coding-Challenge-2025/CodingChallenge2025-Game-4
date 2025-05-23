@@ -83,10 +83,13 @@ export default function Audience() {
     <div>
       <div className="grid grid-cols-2 grid-rows-2 h-screen relative">
         <div className="text-2xl rounded p-2 absolute top-[50%] left-[50%] translate-[-50%] z-30 grid grid-cols-1 grid-rows-1">
-          <p className="text-center text-black font-bold">
+          <p className={`text-center font-bold ${countdown > 60 ? 'text-black' : 'text-red-500'}`}>
             {formatTime(countdown)}
           </p>
           <img src="logo.png" alt="" className="w-48" />
+          {(countdown <= 0) && (
+            <a href="/showcase" className="px-3 py-1 text-lg rounded-md text-white bg-blue-600 font-bold p-6 text-center">Go to result page</a>
+          )}
         </div>
 
         <div className="relative">
