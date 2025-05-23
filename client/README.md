@@ -22,6 +22,7 @@ If you are developing a production application, we recommend using TypeScript wi
 - [x] No block on wrong color id
 - [x] Audience mode
 - [x] Show case mode
+- [ ] Leaderboard mode
 
 Render 2.5D:
 - [x] Hiển thị thông tin ô khi hover (tọa độ, màu)
