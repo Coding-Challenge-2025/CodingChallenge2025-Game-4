@@ -81,7 +81,6 @@ export default function HostDashboard() {
 
     socketService.requestRoomDetails();
     socketService.requestLeaderboard();
-    socketService.requestAvailableShapes();
 
     return () => {
       setIsLoading(false);

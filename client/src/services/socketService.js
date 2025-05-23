@@ -212,28 +212,6 @@ class SocketService {
       }
     });
 
-    // // Leaderboard events
-    // this.socket.on("leaderboard_data", (data) => {
-    //   if (this.handlers.leaderboard_data) {
-    //     this.handlers.leaderboard_data(data);
-    //   }
-    // });
-
-    // // Shape events
-    // this.socket.on("available_shapes", (data) => {
-    //   if (this.handlers.available_shapes) {
-    //     this.handlers.available_shapes(data);
-    //   }
-    // });
-
-    // // Error events
-    // this.socket.on("error", (error) => {
-    //   console.error("Socket server error:", error);
-    //   if (this.handlers.error) {
-    //     this.handlers.error(error);
-    //   }
-    // });
-
     // Disconnect event
     this.socket.on("disconnect", (reason) => {
       if (this.handlers.disconnect) {
@@ -302,27 +280,11 @@ class SocketService {
     }
   }
 
-  submitSolution(code, language) {
+  submitPassedStatus(shapeId, score) {
     if (this.socket && this.socket.connected) {
-      this.socket.emit("submit_solution", { code, language });
+      this.socket.emit("shape_passed", { shapeId, score });
     } else {
       console.error("Cannot submit solution: Socket not connected");
-    }
-  }
-
-  startNewRound() {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("start_new_round");
-    } else {
-      console.error("Cannot start new round: Socket not connected");
-    }
-  }
-
-  sendMessage(message) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("send_message", { message });
-    } else {
-      console.error("Cannot send message: Socket not connected");
     }
   }
 
@@ -353,13 +315,7 @@ class SocketService {
     }
   }
 
-  requestAvailableShapes() {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("request_available_shapes");
-    } else {
-      console.error("Cannot request available shapes: Socket not connected");
-    }
-  }
+  
 
   sendSystemMessage(message) {
     if (this.socket && this.socket.connected) {

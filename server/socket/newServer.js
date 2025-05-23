@@ -147,6 +147,13 @@ export default function setupSocketServer(io) {
         }
 
         gameManager.endGame(GLOBAL_ROOM_ID);
+
+        // update all players in file
+        const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+        for (const player of players) {
+          writePlayerDataToFile(player.userId, player);
+        }
+
         io.to(GLOBAL_ROOM_ID).emit("game_ended", {
           message: "The game has ended by the host",
           room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
@@ -154,6 +161,50 @@ export default function setupSocketServer(io) {
       } catch (error) {
         console.error("Error ending game:", error);
         socket.emit("error", { message: error.message });
+      }
+    });
+
+    socket.on("shape_passed", ({ shapeId, score }) => {
+      console.log(
+        `Player ${socket.user.username} (${socket.user.id}) submitted shape ${shapeId}`
+      );
+
+      // user passed the shape
+      const checkValid = gameManager.checkShapePassed(
+        GLOBAL_ROOM_ID,
+        socket.user.id,
+        shapeId
+      );
+
+      if (checkValid) {
+        gameManager.addShapeToPassedShapes(
+          GLOBAL_ROOM_ID,
+          socket.user.id,
+          shapeId
+        );
+
+        const player = gameManager.findPlayerInRoom(
+          GLOBAL_ROOM_ID,
+          socket.user.id
+        );
+
+        if (player) {
+          console.log(`Player ${player.username} passed shape ${shapeId} and got ${score} points`);
+
+          player.score += score;
+          writePlayerDataToFile(player.userId, player);
+        }
+
+        io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
+          shapeId,
+          playerId: socket.user.id,
+          playerName: socket.user.username,
+        });
+
+        io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+          message: "Scores have been updated",
+          players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+        });
       }
     });
 
@@ -256,11 +307,6 @@ export default function setupSocketServer(io) {
     });
 
     socket.on("request_roomdetails", () => {
-      // console.log(
-      //   "Requesting room details: ",
-      //   gameManager.getRoomDetails(GLOBAL_ROOM_ID)
-      // );
-
       socket.emit("room_updated", {
         message: "Successfully get room details",
         room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),

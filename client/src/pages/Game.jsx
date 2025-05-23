@@ -18,6 +18,8 @@ export default function Game() {
   const [challengeId, setChallengeId] = useState(1);
   const [timeLeft, setTimeLeft] = useState("");
   const [players, setPlayers] = useState([]);
+  const [shapeResults, setShapeResults] = useState(new Map());
+  const [similarity, setSimilarity] = useState(0);
   const navigate = useNavigate();
 
   // Add refs to track if events have been handled
@@ -31,6 +33,53 @@ export default function Game() {
     { id: 3, name: "Hình 3" },
     { id: 4, name: "Hình 4" },
   ]);
+
+  // Load shape results from localStorage
+  const loadShapeResultsFromStorage = () => {
+    const storedResults = localStorage.getItem("shapeResults");
+    if (storedResults) {
+      try {
+        const resultsObj = JSON.parse(storedResults);
+        const resultsMap = new Map(Object.entries(resultsObj));
+        setShapeResults(resultsMap);
+        return resultsMap;
+      } catch (error) {
+        console.error("Failed to load shape results from localStorage:", error);
+      }
+    }
+    return new Map();
+  };
+
+  // Save shape results to localStorage
+  const saveShapeResultsToStorage = (resultsMap) => {
+    try {
+      const resultsObj = Object.fromEntries(resultsMap);
+      localStorage.setItem("shapeResults", JSON.stringify(resultsObj));
+    } catch (error) {
+      console.error("Failed to save shape results to localStorage:", error);
+    }
+  };
+
+  // Update result for a specific shape
+  const updateShapeResult = (shapeId, passed, attempts = null) => {
+    setShapeResults((prev) => {
+      const newResults = new Map(prev);
+      const currentResult = newResults.get(shapeId.toString()) || {
+        passed: false,
+        attempts: 0,
+      };
+
+      const updatedResult = {
+        passed: passed || currentResult.passed, // Once passed, always passed
+        attempts: attempts !== null ? attempts : currentResult.attempts + 1,
+        lastAttempt: new Date().toISOString(),
+      };
+
+      newResults.set(shapeId.toString(), updatedResult);
+      saveShapeResultsToStorage(newResults);
+      return newResults;
+    });
+  };
 
   // Load code from localStorage based on language and challengeId
   const loadCodeFromStorage = (lang, id) => {
@@ -55,7 +104,7 @@ export default function Game() {
   const getShapeById = async (id) => {
     console.log("Fetching shape with ID:", id);
     const response = await fetch(
-      new URL(`/api/shape/${id}`, import.meta.env.VITE_PROD_BACKEND_HTTP)
+      new URL(`/api/shape/${id}`, import.meta.env.VITE_BACKEND_HTTP)
     );
     if (!response.ok) {
       throw new Error("Failed to fetch shape");
@@ -73,6 +122,9 @@ export default function Game() {
 
   // Load random target shape and code template based on language
   useEffect(() => {
+    // Load shape results on component mount
+    loadShapeResultsFromStorage();
+
     // Prevent page refresh during gameplay
     let alertShown = false;
 
@@ -205,9 +257,21 @@ export default function Game() {
   useEffect(() => {
     setCode(loadCodeFromStorage(language, challengeId));
     setOutputShape([]);
-    setScore(0);
     setGameStatus("idle");
   }, [language, challengeId]);
+
+  // Set first target shape
+  useEffect(() => {
+    const fetchInitialShape = async () => {
+      try {
+        const initialShape = await getShapeById(challengeId);
+        setTargetShape(initialShape);
+      } catch (error) {
+        console.error("Failed to fetch initial shape:", error);
+      }
+    };
+    fetchInitialShape();
+  }, []);
 
   const handleLanguageChange = (newLanguage) => {
     if (newLanguage !== language) {
@@ -221,11 +285,13 @@ export default function Game() {
     }
   };
 
-  // useEffect(() => {
-  //   if (code) {
-  //     saveCodeToStorage(language, challengeId, code);
-  //   }
-  // }, [code, language, challengeId]);
+  const submitPassedStatus = (score) => {
+    socketService.submitPassedStatus(challengeId, score);
+    console.log("Shape passed status submitted:", {
+      shapeId: challengeId,
+      passed: true,
+    });
+  };
 
   const runCode = async () => {
     setIsRunning(true);
@@ -240,7 +306,7 @@ export default function Game() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            targetId: 1, // adjust if needed
+            targetId: challengeId,
             language,
             code,
           }),
@@ -248,23 +314,30 @@ export default function Game() {
       );
 
       const data = await response.json();
+      console.log("Code execution response:", data);
 
       if (data.success && Array.isArray(data.output)) {
         setOutputShape(data.output);
-        setScore(data.similarity); // assuming similarity is a number between 0–100
+        setSimilarity(data.similarity);
 
-        if (data.similarity === 100) {
+        const isPassed = data.similarity === 100;
+        if (isPassed) {
           setGameStatus("success");
+          updateShapeResult(challengeId, true);
+          submitPassedStatus(data.score);
         } else {
           setGameStatus("failed");
+          updateShapeResult(challengeId, false);
         }
       } else {
         console.warn("Invalid output from server:", data.message);
         setGameStatus("error");
+        updateShapeResult(challengeId, false);
       }
     } catch (error) {
       console.error("Code execution failed:", error);
       setGameStatus("error");
+      updateShapeResult(challengeId, false);
     }
 
     setIsRunning(false);
@@ -274,19 +347,25 @@ export default function Game() {
   const newChallenge = async (nextId) => {
     saveCodeToStorage(language, challengeId, code);
     console.log("Next challenge ID:", nextId);
-    setChallengeId(nextId);
+    setChallengeId(parseInt(nextId));
 
     try {
       const newShape = await getShapeById(nextId);
-      setTargetShape(newShape); // ✅ set actual resolved value
+      setTargetShape(newShape);
       setCode(loadCodeFromStorage(language, nextId));
     } catch (error) {
       console.error("Failed to fetch new shape:", error);
     }
 
     setOutputShape([]);
-    setScore(0);
     setGameStatus("idle");
+  };
+
+  // Get current shape result
+  const getCurrentShapeResult = () => {
+    return (
+      shapeResults.get(challengeId.toString()) || { passed: false, attempts: 0 }
+    );
   };
 
   return (
@@ -335,6 +414,7 @@ export default function Game() {
               <select
                 name="shape"
                 id="shape"
+                value={challengeId}
                 className="bg-purple-600 hover:bg-purple-700 rounded-md font-medium text-sm p-1"
                 onChange={(e) => {
                   newChallenge(e.target.value);
@@ -347,39 +427,109 @@ export default function Game() {
                 ))}
               </select>
             </div>
+
+            {/* Shape Progress Overview */}
+            <div className="bg-gray-800 p-4 rounded-lg">
+              <h3 className="text-lg font-bold mb-3">Shape Progress</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {shapeOptions.map((shape) => {
+                  const result = shapeResults.get(shape.id.toString()) || {
+                    passed: false,
+                    attempts: 0,
+                  };
+                  return (
+                    <div
+                      key={shape.id}
+                      className={`p-3 rounded-lg border-2 ${
+                        result.passed
+                          ? "border-green-500 bg-green-900/30"
+                          : result.attempts > 0
+                          ? "border-red-500 bg-red-900/30"
+                          : "border-gray-600 bg-gray-700"
+                      } ${
+                        challengeId === shape.id ? "ring-2 ring-blue-400" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{shape.name}</span>
+                        <div className="flex items-center space-x-2">
+                          {result.passed ? (
+                            <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                          ) : result.attempts > 0 ? (
+                            <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                          ) : (
+                            <span className="w-3 h-3 bg-gray-500 rounded-full"></span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400 mt-1">
+                        {result.passed ? (
+                          <span className="text-green-400">✓ Passed</span>
+                        ) : result.attempts > 0 ? (
+                          <span className="text-red-400">
+                            ✗ Failed ({result.attempts} attempts)
+                          </span>
+                        ) : (
+                          <span>Not attempted</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Right column - Voxel Displays */}
           <div className="lg:col-span-7 space-y-1 h-screen flex flex-col">
-            {/* Results bar - moved above the voxel displays */}
-            <div className="bg-gray-800 p-1 rounded-lg">
-              <div className="flex items-center space-x-4">
-                <div className="font-bold">{score}%</div>
-                <div className="flex-1">
-                  <div className="w-full bg-gray-700 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full ${
-                        score === 100 ? "bg-green-500" : "bg-blue-500"
-                      }`}
-                      style={{ width: `${score}` }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
+            {/* Results display - replaced progress bar */}
+            <div className="bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-lg font-bold">Current Result:</div>
                   {gameStatus === "success" && (
-                    <span className="px-3 py-1 text-sm bg-green-600 rounded-md">
-                      Perfect Match!
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                      <span className="px-3 py-1 text-sm bg-green-600 rounded-md font-medium">
+                        ✓ PASSED
+                      </span>
+                    </div>
                   )}
-                  {gameStatus === "failed" && score > 0 && (
-                    <span className="px-3 py-1 text-sm bg-yellow-600 rounded-md">
-                      Close!
-                    </span>
+                  {gameStatus === "failed" && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <span className="px-3 py-1 text-sm bg-red-600 rounded-md font-medium">
+                        ✗ FAILED
+                      </span>
+                    </div>
                   )}
-                  {gameStatus === "failed" && score === 0 && (
-                    <span className="px-3 py-1 text-sm bg-red-600 rounded-md">
-                      Try Again
-                    </span>
+                  {gameStatus === "idle" && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
+                      <span className="px-3 py-1 text-sm bg-gray-600 rounded-md font-medium">
+                        Ready to test
+                      </span>
+                    </div>
+                  )}
+                  {gameStatus === "running" && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span className="px-3 py-1 text-sm bg-blue-600 rounded-md font-medium">
+                        Running...
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-400">
+                    {getCurrentShapeResult().attempts > 0 && (
+                      <span>Attempts: {getCurrentShapeResult().attempts}</span>
+                    )}
+                  </div>
+                  {score > 0 && score < 100 && (
+                    <div className="text-sm text-yellow-400">
+                      Similarity: {similarity}%
+                    </div>
                   )}
                 </div>
               </div>
@@ -391,7 +541,6 @@ export default function Game() {
                   Target Shape
                 </h2>
                 <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
-                  {/* <VoxelRenderer shape={targetShape} /> */}
                   <GridComponent grid={targetShape} showPalette />
                 </div>
               </div>
@@ -402,7 +551,6 @@ export default function Game() {
                 </h2>
                 <div className="bg-gray-800 rounded-lg h-full overflow-hidden">
                   {outputShape.length > 0 ? (
-                    // <VoxelRenderer shape={outputShape} />
                     <GridComponent grid={outputShape} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">

@@ -133,7 +133,7 @@ class GameManager {
 
     // print all players id in the room
     const playerIds = room.players.map((player) => player.userId);
-    console.log("Player IDs in room:", playerIds);
+    // console.log("Player IDs in room:", playerIds);
 
     const player = room.players.find((player) => player.userId === playerId);
     return player || null;
@@ -171,6 +171,13 @@ class GameManager {
     }
 
     room.gameInProgress = false;
+    room.players.forEach((player) => {
+      if (!player.isHost) {
+        player.status = "waiting";
+        player.score = 0;
+        player.passedShapes = [];
+      }
+    });
     clearInterval(room.timer);
     room.timer = null;
 
@@ -278,6 +285,42 @@ class GameManager {
     room.gameDuration = settings.gameDuration;
 
     return room;
+  }
+
+  checkShapePassed(roomId, playerId, shapeId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    const player = room.players.find((p) => p.userId === playerId);
+    if (!player.passedShapes) return true;
+
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    }
+
+    console.log("Player passed shapes:", player.passedShapes);
+
+    return !player.passedShapes.includes(shapeId);
+  }
+
+  addShapeToPassedShapes(roomId, playerId, shapeId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    const player = room.players.find((p) => p.userId === playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    }
+
+    if (!player.passedShapes) {
+      player.passedShapes = [];
+    }
+
+    player.passedShapes.push(shapeId);
   }
 }
 
