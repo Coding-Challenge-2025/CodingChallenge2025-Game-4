@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
 
     // connect socket with user data
     await socketService.connect(
-      "http://localhost:3000",
+      import.meta.env.VITE_BACKEND_HTTP,
       userData.username,
       userData.password
     );

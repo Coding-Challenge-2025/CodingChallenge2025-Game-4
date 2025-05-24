@@ -46,7 +46,7 @@ class SocketService {
       throw new Error("No stored session found");
     }
 
-    const serverUrl = "http://localhost:3000";
+    const serverUrl = import.meta.env.VITE_BACKEND_HTTP;
     return this.connect(serverUrl, session.username, session.password);
   }
 

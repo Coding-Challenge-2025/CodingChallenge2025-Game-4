@@ -86,7 +86,8 @@ export default function Audience() {
       for (let id = 1; id <= 4; id++) {
         try {
           const response = await fetch(
-            `http://localhost:3000/api/audience/${id}`
+            // `http://localhost:3000/api/audience/${id}`
+            `${import.meta.env.VITE_BACKEND_HTTP}/api/audience/${id}`
           );
           if (!response.ok) {
             throw new Error(`Failed to fetch data for player ${id}`);
