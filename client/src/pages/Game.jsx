@@ -104,11 +104,14 @@ export default function Game() {
     });
   };
 
+  const baseURL =
+    import.meta.env.VITE_ENV === "production"
+      ? import.meta.env.VITE_PROD_BACKEND_HTTP
+      : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
+
   const getShapeById = async (id) => {
     console.log("Fetching shape with ID:", id);
-    const response = await fetch(
-      new URL(`/api/shape/${id}`, import.meta.env.VITE_BACKEND_HTTP)
-    );
+    const response = await fetch(new URL(`/api/shape/${id}`, baseURL));
     if (!response.ok) {
       throw new Error("Failed to fetch shape");
     }
@@ -328,9 +331,14 @@ export default function Game() {
     setGameStatus("running");
     setErrorDetails(""); // Clear previous error details
 
+    const baseURL =
+      import.meta.env.VITE_ENV === "production"
+        ? import.meta.env.VITE_PROD_BACKEND_HTTP
+        : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
+
     try {
       const response = await fetch(
-        new URL("/api/code/execute", import.meta.env.VITE_BACKEND_HTTP),
+        new URL("/api/code/execute", baseURL),
         {
           method: "POST",
           headers: {
