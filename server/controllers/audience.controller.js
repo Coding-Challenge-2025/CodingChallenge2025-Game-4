@@ -13,7 +13,7 @@ const getCurrentShapeByUserId = async (req, res) => {
     "../data/currentShape/" + playerId + ".json"
   );
   
-  console.log("filePath", filePath);
+  // console.log("filePath", filePath);
 
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: true, message: "Shape not found" });

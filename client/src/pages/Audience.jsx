@@ -91,6 +91,9 @@ export default function Audience() {
             throw new Error(`Failed to fetch data for player ${id}`);
           }
           const data = await response.json();
+
+          console.log(`Player ${id} grid data:`, data);
+
           // Assuming the API returns a grid in the format { grid: [...] }
           const grid = data.outputShape || [];
           if (Array.isArray(grid) && grid.length > 0) {

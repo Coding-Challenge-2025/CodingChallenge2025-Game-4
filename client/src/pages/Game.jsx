@@ -352,7 +352,7 @@ export default function Game() {
         setSimilarity(data.similarity);
 
         // emit event to server
-        socketService.submitSolution(challengeId, outputShape);
+        socketService.submitSolution(challengeId, data.output);
 
         const isPassed = data.similarity === 100;
         if (isPassed) {

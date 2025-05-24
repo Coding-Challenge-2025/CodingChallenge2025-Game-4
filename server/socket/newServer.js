@@ -531,7 +531,7 @@ function writeOutputShapeToFile(playerId, shapeId, outputShape) {
       outputPath,
       JSON.stringify(
         {
-          playerId, 
+          playerId,
           shapeId,
           outputShape,
         },
