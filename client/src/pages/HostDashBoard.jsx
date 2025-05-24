@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
 import socketService from "../services/socketService";
 import DashBoardHeader from "../components/host-dashboard/DashBoardHeader";
 import GameStatusCard from "../components/host-dashboard/GameStatusCard";
@@ -11,7 +12,7 @@ import ErrorScreen from "../components/host-dashboard/ErrorScreen";
 const defaultRoomSettings = {
   name: "Coding Challenge 2025",
   maxPlayers: 4,
-  minPlayersToStart: 2,
+  minPlayersToStart: 1,
   gameDuration: 10,
 };
 
@@ -43,7 +44,6 @@ export default function HostDashboard() {
         setRoom(data.room);
       },
       roomUpdated: (data) => {
-        console.log("Room updated:", data.room);
         setRoom(data.room);
         setRoomSettings(getRoomSettings(data.room));
         setPlayers(data.room.players);
@@ -61,6 +61,16 @@ export default function HostDashboard() {
       },
       scoresUpdated: (data) => {
         setPlayers(data.players);
+
+        console.log("Scores updated:", data.players);
+        if (data.score) {
+          toast.success(`${data.playerName} has scored ${data.score} points!`, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+          });
+        }
       },
       settings_updated: (data) => {
         setRoomSettings(data.settings);
@@ -154,6 +164,12 @@ export default function HostDashboard() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <DashBoardHeader onLogOut={logOut} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+      />
 
       <div className="container mx-auto px-4 py-4">
         <GameStatusCard
@@ -201,8 +217,6 @@ function getRoomSettings(room) {
     name: room.name,
     maxPlayers: room.maxPlayers,
     minPlayersToStart: room.minPlayersToStart,
-    gameDuration: room.gameDuration
+    gameDuration: room.gameDuration,
   };
 }
-
-

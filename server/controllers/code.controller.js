@@ -36,8 +36,6 @@ const executeCode = async (req, res, next) => {
       targetId
     );
 
-    console.log("Result: ", targetShape, score);
-
     if (!targetShape) {
       return res.status(404).json({
         error: true,

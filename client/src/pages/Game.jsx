@@ -5,6 +5,7 @@ import GridComponent from "../components/GridComponent";
 import socketService from "../services/socketService";
 import { getCodeTemplate } from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function Game() {
   const [code, setCode] = useState("");
@@ -25,6 +26,7 @@ export default function Game() {
   // Add refs to track if events have been handled
   const gameEndedHandled = useRef(false);
   const kickedHandled = useRef(false);
+  const toastedHandled = useRef(false);
 
   // For shape selection button
   const [shapeOptions, setShapeOptions] = useState([
@@ -208,6 +210,24 @@ export default function Game() {
           }
         }
       },
+      scoreUpdated: (data) => {
+        if (toastedHandled.current) return;
+        toastedHandled.current = true;
+
+        // console.log("Score updated:", data);
+        toast.success(`Your gained ${data.score} points!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          onClose: () => {
+            toastedHandled.current = false;
+          },
+        });
+      },
       scoresUpdated: (data) => {
         const currentPlayer = JSON.parse(localStorage.getItem("user"));
         const player = data.players.find(
@@ -227,7 +247,15 @@ export default function Game() {
         if (player) {
           setScore(player.score);
         }
-        alert("Scores have been reset by the host.");
+        toast.info("Scores have been reset!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
 
         setPlayers(data.players);
       },
@@ -250,6 +278,7 @@ export default function Game() {
       socketService.clearHandlers();
       gameEndedHandled.current = false;
       kickedHandled.current = false;
+      toastedHandled.current = false;
     };
   }, [navigate]);
 
@@ -371,6 +400,7 @@ export default function Game() {
   return (
     <main className="min-h-screen flex flex-col bg-gray-900 text-white">
       <div className="flex-1 container mx-auto p-2 flex flex-col">
+        <ToastContainer />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left column - Code Editor */}
           <div className="lg:col-span-5 space-y-4">
