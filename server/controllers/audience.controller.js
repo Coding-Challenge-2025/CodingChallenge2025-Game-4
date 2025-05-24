@@ -53,7 +53,10 @@ const getShowcaseShapes = async (req, res) => {
       .json({ error: true, message: "Missing userId or shapeId" });
   }
 
-  const filePath = path.join(__dirname, `../data/currentShape/shape${shapeId}/${userId}.json`);
+  const filePath = path.join(
+    __dirname,
+    `../data/currentShape/shape${shapeId}/${userId}.json`
+  );
 
   if (!fs.existsSync(filePath)) {
     return res
@@ -71,8 +74,28 @@ const getShowcaseShapes = async (req, res) => {
   }
 };
 
+const getLeaderboard = async (req, res) => {
+  const filePath = path.join(__dirname, "../data/leaderboard.json");
+
+  if (!fs.existsSync(filePath)) {
+    return res
+      .status(404)
+      .json({ error: true, message: "Leaderboard not found" });
+  }
+
+  try {
+    const content = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    res.json(content);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: true, message: "Error parsing leaderboard file" });
+  }
+};
+
 export default {
   getCurrentShapeByUserId,
   getGameStartTime,
   getShowcaseShapes,
+  getLeaderboard,
 };

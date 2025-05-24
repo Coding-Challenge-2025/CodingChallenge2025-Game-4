@@ -358,6 +358,26 @@ class GameManager {
       players: playersResult,
     };
   }
+
+  getGameLeaderboard(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    // Sort players by score in descending order
+    const leaderboard = room.players
+      .slice()
+      .filter((player) => player.username !== "admin") // filter before mapping
+      .sort((a, b) => b.score - a.score)
+      .map((player) => ({
+        playerId: player.userId,
+        playerName: player.username,
+        score: player.score,
+      }));
+
+    return leaderboard;
+  }
 }
 
 export default GameManager;

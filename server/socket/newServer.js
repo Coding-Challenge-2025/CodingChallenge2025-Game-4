@@ -151,6 +151,10 @@ export default function setupSocketServer(io) {
           GLOBAL_ROOM_ID,
           gameManager.getGameResults(GLOBAL_ROOM_ID)
         );
+        saveLeaderboardToFile(
+          GLOBAL_ROOM_ID,
+          gameManager.getGameLeaderboard(GLOBAL_ROOM_ID)
+        );
 
         // update all players in file
         const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
@@ -663,6 +667,24 @@ function saveGameResultsToFile(roomId, results) {
   } catch (error) {
     console.error("Error writing game results to file:", error);
     throw new Error("Failed to write game results");
+  }
+}
+
+function saveLeaderboardToFile(roomId, leaderboard) {
+  // save leaderboard to a file with path "../data/leaderboard/<timestamp>/<roomId>.json"
+  const leaderboardPath = path.join(__dirname, "../data/leaderboard.json");
+
+  // create the directory if it doesn't exist
+  if (!fs.existsSync(path.dirname(leaderboardPath))) {
+    fs.mkdirSync(path.dirname(leaderboardPath), { recursive: true });
+  }
+
+  // write the leaderboard to the file
+  try {
+    fs.writeFileSync(leaderboardPath, JSON.stringify(leaderboard, null, 2));
+  } catch (error) {
+    console.error("Error writing leaderboard to file:", error);
+    throw new Error("Failed to write leaderboard");
   }
 }
 

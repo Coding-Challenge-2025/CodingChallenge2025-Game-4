@@ -32,9 +32,10 @@ router.post("/session/start", (req, res) => {
 });
 
 // Audience routes
-router.get("/audience/:playerId", audienceController.getCurrentShapeByUserId)
 router.get("/audience/startTime", audienceController.getGameStartTime);
 router.get("/audience/showcase", audienceController.getShowcaseShapes);
+router.get("/audience/leaderboard", audienceController.getLeaderboard);
+router.get("/audience/:playerId", audienceController.getCurrentShapeByUserId)
 
 // Showcase routes
 // router.get("/audience/showcase/", showcaseRouter.getShowcaseShapes); // query params: ?userId=1&shapeId=2 return { output: [[1, 2, 3], [4, 5, 6]] }
