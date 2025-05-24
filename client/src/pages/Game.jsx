@@ -22,6 +22,7 @@ export default function Game() {
   const [shapeResults, setShapeResults] = useState(new Map());
   const [similarity, setSimilarity] = useState(0);
   const navigate = useNavigate();
+  const [errorDetails, setErrorDetails] = useState("");
 
   // Add refs to track if events have been handled
   const gameEndedHandled = useRef(false);
@@ -325,6 +326,7 @@ export default function Game() {
   const runCode = async () => {
     setIsRunning(true);
     setGameStatus("running");
+    setErrorDetails(""); // Clear previous error details
 
     try {
       const response = await fetch(
@@ -362,6 +364,45 @@ export default function Game() {
         console.warn("Invalid output from server:", data.message);
         setGameStatus("error");
         updateShapeResult(challengeId, false);
+
+        // Handle code compilation or execution errors
+        if (data.details) {
+          setErrorDetails(data.details);
+          toast.error(`Code Error: ${data.details}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+        } else if (data.message) {
+          setErrorDetails(data.message);
+          toast.error(`Execution failed: ${data.message}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+        } else {
+          setErrorDetails("Unknown error occurred");
+          toast.error(
+            "Code execution failed. Please check your code and try again.",
+            {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            }
+          );
+        }
       }
     } catch (error) {
       console.error("Code execution failed:", error);
@@ -376,7 +417,7 @@ export default function Game() {
   const newChallenge = async (nextId) => {
     saveCodeToStorage(language, challengeId, code);
     console.log("Next challenge ID:", nextId);
-    setChallengeId(parseInt(nextId));
+    setChallengeId(Number.parseInt(nextId));
 
     try {
       const newShape = await getShapeById(nextId);
@@ -533,6 +574,14 @@ export default function Game() {
                       </span>
                     </div>
                   )}
+                  {gameStatus === "error" && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <span className="px-3 py-1 text-sm bg-red-600 rounded-md font-medium">
+                        ⚠ ERROR
+                      </span>
+                    </div>
+                  )}
                   {gameStatus === "idle" && (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
@@ -556,13 +605,25 @@ export default function Game() {
                       <span>Attempts: {getCurrentShapeResult().attempts}</span>
                     )}
                   </div>
-                  {score > 0 && score < 100 && (
+                  {similarity > 0 && similarity < 100 && (
                     <div className="text-sm text-yellow-400">
                       Similarity: {similarity}%
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Error details display */}
+              {gameStatus === "error" && errorDetails && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-500 rounded-lg">
+                  <div className="text-sm font-medium text-red-400 mb-1">
+                    Error Details:
+                  </div>
+                  <div className="text-sm text-red-300 font-mono whitespace-pre-wrap">
+                    {errorDetails}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 grid-rows-2 gap-1 h-full bg-emerald-800">
