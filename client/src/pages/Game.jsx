@@ -352,13 +352,13 @@ export default function Game() {
         setSimilarity(data.similarity);
 
         // emit event to server
-        socketService.submitSolution(challengeId, data.output);
+        socketService.submitSolution(challengeId, data);
 
         const isPassed = data.similarity === 100;
         if (isPassed) {
           setGameStatus("success");
           updateShapeResult(challengeId, true);
-          submitPassedStatus(data.score);
+          // submitPassedStatus(data.score);
         } else {
           setGameStatus("failed");
           updateShapeResult(challengeId, false);

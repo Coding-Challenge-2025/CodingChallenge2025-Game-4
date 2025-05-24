@@ -33,5 +33,14 @@ router.post("/session/start", (req, res) => {
 
 // Audience routes
 router.get("/audience/:playerId", audienceController.getCurrentShapeByUserId)
+router.get("/audience/startTime", audienceController.getGameStartTime);
+router.get("/audience/showcase", audienceController.getShowcaseShapes);
+
+// Showcase routes
+// router.get("/audience/showcase/", showcaseRouter.getShowcaseShapes); // query params: ?userId=1&shapeId=2 return { output: [[1, 2, 3], [4, 5, 6]] }
+
+// Leaderboard routes
+// router.get("/audience/leaderboard", leaderboardRouter.getLeaderboard); // return { leaderboard: [{ userId: 1, username: a, score: 100 }, { userId: 2, username: b, score: 90 }] }
+
 
 export default router;

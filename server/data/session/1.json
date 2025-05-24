@@ -1,11 +1,12 @@
 {
-  "socketId": "EllKVajK_uMSAw3jAAAJ",
+  "socketId": "gBpsNVbLlbe9LPc2AAAC",
   "userId": 1,
   "username": "player1",
-  "score": 10,
+  "score": 30,
   "isHost": false,
-  "status": "waiting",
+  "status": "playing",
   "passedShapes": [
-    1
+    1,
+    2
   ]
 }

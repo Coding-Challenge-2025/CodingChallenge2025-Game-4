@@ -1,5 +1,5 @@
 import GameManger from "./gameManager.js";
-import fs from "fs";
+import fs, { write } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -168,64 +168,123 @@ export default function setupSocketServer(io) {
       }
     });
 
-    socket.on("shape_passed", ({ shapeId, score }) => {
-      console.log(
-        `Player ${socket.user.username} (${socket.user.id}) submitted shape ${shapeId}`
-      );
+    // socket.on("shape_passed", ({ shapeId, score }) => {
+    //   console.log(
+    //     `Player ${socket.user.username} (${socket.user.id}) submitted shape ${shapeId}`
+    //   );
 
-      // user passed the shape
-      const checkValid = gameManager.checkShapePassed(
+    //   // user passed the shape
+    //   const checkValid = gameManager.checkShapePassed(
+    //     GLOBAL_ROOM_ID,
+    //     socket.user.id,
+    //     shapeId
+    //   );
+
+    //   if (checkValid) {
+    //     gameManager.addShapeToPassedShapes(
+    //       GLOBAL_ROOM_ID,
+    //       socket.user.id,
+    //       shapeId
+    //     );
+
+    //     const player = gameManager.findPlayerInRoom(
+    //       GLOBAL_ROOM_ID,
+    //       socket.user.id
+    //     );
+
+    //     if (player) {
+    //       console.log(
+    //         `Player ${player.username} passed shape ${shapeId} and got ${score} points`
+    //       );
+
+    //       player.score += score;
+    //       writePlayerDataToFile(player.userId, player);
+    //     }
+
+    //     socket.emit("score_updated", {
+    //       message: `You passed the shape ${shapeId} and got ${score} points`,
+    //       playerId: socket.user.id,
+    //       playerName: player.username,
+    //       score: score,
+    //     });
+
+    //     // io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
+    //     //   shapeId,
+    //     //   playerId: socket.user.id,
+    //     //   playerName: socket.user.username,
+    //     // });
+
+    //     io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+    //       message: "Scores have been updated",
+    //       playerId: socket.user.id,
+    //       playerName: player.username,
+    //       score: score,
+    //       players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+    //     });
+    //   }
+    // });
+
+    socket.on("submit_solution", ({ shapeId, data }) => {
+      // check if shape is passed
+      const isShapePassed = gameManager.checkShapePassed(
         GLOBAL_ROOM_ID,
         socket.user.id,
         shapeId
       );
 
-      if (checkValid) {
-        gameManager.addShapeToPassedShapes(
-          GLOBAL_ROOM_ID,
-          socket.user.id,
-          shapeId
-        );
+      if (data.similarity === 100) {
+        if (!isShapePassed) {
+          gameManager.addShapeToPassedShapes(
+            GLOBAL_ROOM_ID,
+            socket.user.id,
+            shapeId
+          );
+          writeOutputShapeToFile(socket.user.id, shapeId, data.output);
 
-        const player = gameManager.findPlayerInRoom(
-          GLOBAL_ROOM_ID,
-          socket.user.id
-        );
-
-        if (player) {
-          console.log(
-            `Player ${player.username} passed shape ${shapeId} and got ${score} points`
+          const player = gameManager.findPlayerInRoom(
+            GLOBAL_ROOM_ID,
+            socket.user.id
           );
 
-          player.score += score;
-          writePlayerDataToFile(player.userId, player);
+          if (player) {
+            console.log(
+              `Player ${player.username} passed shape ${shapeId} and got ${data.score} points`
+            );
+
+            player.score += data.score;
+            writePlayerDataToFile(player.userId, player);
+          }
+
+          socket.emit("score_updated", {
+            message: `You passed the shape ${shapeId} and got ${data.score} points`,
+            playerId: socket.user.id,
+            playerName: player.username,
+            score: data.score,
+          });
+
+          io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+            message: "Scores have been updated",
+            playerId: socket.user.id,
+            playerName: player.username,
+            score: data.score,
+            players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+          });
         }
+      } else {
+        if (!isShapePassed) {
+          console.log(
+            `Player ${socket.user.username} (${socket.user.id}) submitted solution for shape ${shapeId} with similarity ${data.similarity}`
+          );
 
-        socket.emit("score_updated", {
-          message: `You passed the shape ${shapeId} and got ${score} points`,
-          playerId: socket.user.id,
-          playerName: player.username,
-          score: score,
-        });
-
-        // io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
-        //   shapeId,
-        //   playerId: socket.user.id,
-        //   playerName: socket.user.username,
-        // });
-
-        io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
-          message: "Scores have been updated",
-          playerId: socket.user.id,
-          playerName: player.username,
-          score: score,
-          players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
-        });
+          // write the output shape to file
+          writeOutputShapeToFile(socket.user.id, shapeId, data.output);
+        } else {
+          socket.emit("error", {
+            message: `You cannot resubmit a solution for shape ${shapeId} as you have already passed it`,
+          });
+        }
       }
-    });
 
-    socket.on("submit_solution", ({ shapeId, outputShape }) => {
-      writeOutputShapeToFile(socket.user.id, shapeId, outputShape);
       console.log(
         `Player ${socket.user.username} (${socket.user.id}) submitted solution`
       );
@@ -390,6 +449,7 @@ export default function setupSocketServer(io) {
     gameManager.startGame(GLOBAL_ROOM_ID);
     for (const player of room.players) {
       writePlayerDataToFile(player.userId, player);
+      writeStartTimeToFile();
     }
 
     const gameDuration = room.gameDuration * 60 * 1000;
@@ -522,8 +582,7 @@ function getGlobalRoomSettings() {
 function writeOutputShapeToFile(playerId, shapeId, outputShape) {
   const outputPath = path.join(
     __dirname,
-    "../data/currentShape",
-    `${playerId}.json`
+    `../data/currentShape/shape${shapeId}/${playerId}.json`
   );
 
   try {
@@ -557,6 +616,20 @@ function writePlayerDataToFile(playerId, data) {
   } catch (error) {
     console.error("Error writing player data to file:", error);
     throw new Error("Failed to write player data");
+  }
+}
+
+function writeStartTimeToFile() {
+  const startTimePath = path.join(__dirname, "../data/gameStartTime.json");
+
+  try {
+    const content = {
+      startTime: Date.now(),
+    };
+    fs.writeFileSync(startTimePath, JSON.stringify(content, null, 2));
+  } catch (error) {
+    console.error("Error writing game start time to file:", error);
+    throw new Error("Failed to write game start time");
   }
 }
 

@@ -295,9 +295,9 @@ class SocketService {
     }
   }
 
-  submitSolution(shapeId, outputShape) {
+  submitSolution(shapeId, data) {
     if (this.socket && this.socket.connected) {
-      this.socket.emit("submit_solution", { shapeId, outputShape });
+      this.socket.emit("submit_solution", { shapeId, data });
     } else {
       console.error("Cannot submit solution: Socket not connected");
     }

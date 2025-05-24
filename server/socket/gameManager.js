@@ -314,7 +314,7 @@ class GameManager {
 
     console.log("Player passed shapes:", player.passedShapes);
 
-    return !player.passedShapes.includes(shapeId);
+    return player.passedShapes.includes(shapeId);
   }
 
   addShapeToPassedShapes(roomId, playerId, shapeId) {
