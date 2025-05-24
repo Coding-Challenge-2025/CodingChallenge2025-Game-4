@@ -7,7 +7,10 @@ const __dirname = path.dirname(__filename);
 
 const getShapeById = async (req, res) => {
   const { patternId } = req.params;
-  const filePath = path.join(__dirname, "../data/shapes/shape" + patternId + ".txt");
+  const filePath = path.join(
+    __dirname,
+    "../data/shapes/shape" + patternId + ".txt"
+  );
 
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: true, message: "Shape not found" });
@@ -83,12 +86,20 @@ function getMatrixById(id) {
   }
 
   const content = fs.readFileSync(filePath, "utf8").trim().split("\n");
-  const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number));
-  return matrix;
+
+  const [rows, cols, score] = content[0].trim().split(/\s+/).map(Number);
+  const matrix = content
+    .slice(1)
+    .map((line) => line.trim().split(/\s+/).map(Number));
+
+  return {
+    matrix,
+    score,
+  };
 }
 
-export default { 
-  getShapeById, 
-  getAllShapes, 
-  getMatrixById
+export default {
+  getShapeById,
+  getAllShapes,
+  getMatrixById,
 };

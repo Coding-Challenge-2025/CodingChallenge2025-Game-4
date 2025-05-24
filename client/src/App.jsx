@@ -1,18 +1,28 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
-import { useAuth } from "./context/authContext";
+import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import Game from "./pages/Game";
 import WaitingRoom from "./pages/WaitingRoom";
 import HostDashboard from "./pages/HostDashBoard";
 import Audience from "./pages/Audience";
+import LoadingScreen from "./components/host-dashboard/LoadingScreen";
 import Showcase from "./pages/Showcase";
+import Leaderboard from "./pages/Leaderboard";
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+const AuthenticatedRoute = ({ children }) => {
+  const { user, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    console.log("User is not authenticated");
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
     return <Navigate to="/" />;
   }
 
@@ -27,28 +37,29 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/audience" element={<Audience />} />
           <Route path="/showcase" element={<Showcase />} />
-          <Route
-            path="/game"
-            element={
-              // <ProtectedRoute>
-                <Game />
-              // </ProtectedRoute>
-            }
-          />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route
             path="/waiting-room"
             element={
-              <ProtectedRoute>
+              <AuthenticatedRoute>
                 <WaitingRoom />
-              </ProtectedRoute>
+              </AuthenticatedRoute>
             }
           />
           <Route
             path="/host-dashboard"
             element={
-              <ProtectedRoute>
+              <AuthenticatedRoute>
                 <HostDashboard />
-              </ProtectedRoute>
+              </AuthenticatedRoute>
+            }
+          />
+          <Route
+            path="/game"
+            element={
+              <AuthenticatedRoute>
+                <Game />
+              </AuthenticatedRoute>
             }
           />
         </Routes>

@@ -28,7 +28,6 @@ function loadHostAccount() {
     const data = JSON.parse(fs.readFileSync(hostAccountPath, "utf8"));
     hostAccount = data.host;
     roomSettings = data.roomSettings;
-    console.log("Host account loaded:", hostAccount);
   } catch (error) {
     console.error("Error reading host account file:", error);
     return null;
@@ -42,12 +41,16 @@ loadHostAccount();
 gameManager.createRoom(GLOBAL_ROOM_ID, {
   name: roomSettings.name || "VoxelCode Arena",
   isPrivate: false,
-  maxPlayers: roomSettings.maxPlayers || 4,
+  maxPlayers: roomSettings.maxPlayers || 5,
   createdBy: "system",
   creatorName: hostAccount.username || "System",
   hostId: hostAccount?.id || "111",
   isActive: false,
 });
+
+console.log(
+  `Global room created: ${GLOBAL_ROOM_ID} - ${roomSettings.name} (Max Players: ${roomSettings.maxPlayers})`
+);
 
 function setupSocketServer(io) {
   // middleware for authentication with username
@@ -183,13 +186,9 @@ function setupSocketServer(io) {
       switch (command) {
         case "kick_player":
           if (data.playerId) {
-            const playerSocket = io.sockets.sockets.get(data.playerId);
-            if (playerSocket) {
-              playerSocket.emit("kicked", {
-                reason: data.reason || "You have been kicked by the host",
-              });
-              playerSocket.disconnect(true);
-            }
+            console.log(
+              `Player kicked: ${data.playerName} (${data.playerId}) - Reason: ${data.reason}`
+            );
 
             io.to(GLOBAL_ROOM_ID).emit("player_kicked", {
               playerId: data.playerId,
@@ -228,33 +227,12 @@ function setupSocketServer(io) {
 
           break;
 
-        case "select_shape":
-          if (data.shapeId) {
-            const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-            if (room) {
-              room.nextShapeId = data.shapeId;
-              socket.emit("shape_selected", { shapeId: data.shapeId });
-            }
-          }
-
-          break;
-
-        case "end_round":
-          const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-          if (room && room.gameInProgress && room.timer) {
-            clearInterval(room.timer);
-            gameManager.endRound(GLOBAL_ROOM_ID);
-
-            // Get final scores
-            const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
-            updatePlayerScores(results.players);
-
-            // Notify all clients in the room
-            io.to(GLOBAL_ROOM_ID).emit("round_ended", {
-              results,
-              room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-            });
-          }
+        case "end_game":
+          gameManager.endGame(GLOBAL_ROOM_ID);
+          io.to(GLOBAL_ROOM_ID).emit("game_ended", {
+            message: "The game has ended by the host",
+            room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+          });
 
           break;
 
@@ -282,17 +260,12 @@ function setupSocketServer(io) {
 
         // start the game
         gameManager.startGame(GLOBAL_ROOM_ID);
-        const shape = gameManager.generateShapeForRoom(GLOBAL_ROOM_ID);
-        const roundDuration = (roomSettings.roundDuration || 3) * 60 * 1000; // Default round duration in milliseconds
+        const roundDuration = (roomSettings.roundDuration || 3) * 60 * 1000;
         const endTime = Date.now() + roundDuration;
-
-        // set round timer
-        gameManager.setRoundTimer(GLOBAL_ROOM_ID, endTime);
 
         // notify all players in the room
         io.to(GLOBAL_ROOM_ID).emit("game_started", {
           room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          shape,
           endTime,
         });
 
@@ -302,17 +275,11 @@ function setupSocketServer(io) {
           if (timeLeft <= 0) {
             // stop the round
             clearInterval(timer);
-            gameManager.endRound(GLOBAL_ROOM_ID);
+            // gameManager.endRound(GLOBAL_ROOM_ID);
 
             // handle round end
-            const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
-            updatePlayerScores(results.players);
-
-            // notify all players in the room that the round has ended
-            io.to(GLOBAL_ROOM_ID).emit("round_ended", {
-              results,
-              room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-            });
+            // const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
+            // updatePlayerScores(results.players);
           } else {
             // send time updates every second
             if (timeLeft % 1000 < 100) {
@@ -328,6 +295,23 @@ function setupSocketServer(io) {
         gameManager.setRoomTimer(GLOBAL_ROOM_ID, timer);
       } catch (error) {
         console.error("Error starting game:", error);
+        socket.emit("error", { message: error.message });
+      }
+    });
+
+    socket.on("end_game", () => {
+      try {
+        if (!socket.isHost) {
+          throw new Error("Only the host can end the game");
+        }
+
+        gameManager.endGame(GLOBAL_ROOM_ID);
+        io.to(GLOBAL_ROOM_ID).emit("game_ended", {
+          message: "The game has ended by the host",
+          room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+        });
+      } catch (error) {
+        console.error("Error ending game:", error);
         socket.emit("error", { message: error.message });
       }
     });
@@ -354,7 +338,7 @@ function setupSocketServer(io) {
           result.output,
           room.currentShape
         );
-        gameManager.udpatePlayerScore(
+        gameManager.updatePlayerScore(
           GLOBAL_ROOM_ID,
           socket.id,
           score.score,
@@ -394,19 +378,6 @@ function setupSocketServer(io) {
       }
     });
 
-    socket.on("start_new_round", () => {
-      try {
-        if (!socket.isHost) {
-          throw new Error("Only the host can start a new round");
-        }
-
-        gameManager.resetRound(GLOBAL_ROOM_ID);
-        handleNewRound(GLOBAL_ROOM_ID);
-      } catch (error) {
-        socket.emit("error", { message: error.message });
-      }
-    });
-
     socket.on("send_message", ({ message }) => {
       if (!message.trim()) {
         throw new Error("Message cannot be empty");
@@ -420,35 +391,6 @@ function setupSocketServer(io) {
         isHost: socket.isHost || false,
       });
     });
-
-    // socket.on("request_leaderboard", () => {
-    //   // Only host can request leaderboard
-    //   if (!socket.isHost) {
-    //     socket.emit("error", {
-    //       message: "Unauthorized: Host privileges required",
-    //     });
-    //     return;
-    //   }
-
-    //   try {
-    //     // Get top scoring users from account utils
-    //     const topUsers = require("../utils/accountUtils").getTopScoringUsers(
-    //       20
-    //     );
-
-    //     // Format and send leaderboard data
-    //     const leaderboard = topUsers.map((user, index) => ({
-    //       rank: index + 1,
-    //       username: user.username,
-    //       score: user.score || 0,
-    //       isHost: user.id === hostAccount?.id,
-    //     }));
-
-    //     socket.emit("leaderboard_data", { leaderboard });
-    //   } catch (error) {
-    //     socket.emit("error", { message: "Error fetching leaderboard data" });
-    //   }
-    // });
 
     // Request available shapes
     socket.on("request_available_shapes", () => {
@@ -501,8 +443,7 @@ function setupSocketServer(io) {
     });
 
     socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.username} (${socket.userId})`);
-
+      // console.log(`User disconnected: ${socket.username} (${socket.userId})`);
       gameManager.removePlayerFromRoom(GLOBAL_ROOM_ID, socket.id);
 
       // notify all players in the room about the disconnection
@@ -527,6 +468,13 @@ function setupSocketServer(io) {
         }
       }
     });
+
+    socket.on("request_roomdetails", () => {
+      socket.emit("room_updated", {
+        message: "Successfully get room details",
+        room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+      });
+    });
   });
 }
 
@@ -540,7 +488,7 @@ function handleNewRound(roomId) {
   const duration = (roomSettings.roundDuration || 3) * 60 * 1000; // Default round duration in milliseconds
   const endTime = Date.now() + duration;
 
-  gameManager.setRoundTimer(roomId, endTime);
+  gameManager.setGameTimer(roomId, endTime);
 
   // notify all players in the room
   io.to(roomId).emit("new_round_started", {
@@ -579,7 +527,6 @@ function handleNewRound(roomId) {
 
   // store the timer reference
   gameManager.setRoomTimer(roomId, timer);
-  console.log(`New round started in room ${roomId} with shape ${shape}`);
 }
 
 // update room settings in host.json
@@ -606,8 +553,6 @@ function updateRoomSettings(newSettings) {
     );
 
     roomSettings = hostData.roomSettings; // Update the in-memory settings
-
-    console.log("Room settings updated successfully");
   } catch (error) {
     console.error("Error updating room settings:", error);
   }

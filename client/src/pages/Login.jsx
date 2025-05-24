@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import socketService from "../services/socketService";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/authContext"
+import { useAuth } from "../hooks/useAuth";
 
 export default function Home() {
   const [authError, setAuthError] = useState("");
@@ -16,6 +16,18 @@ export default function Home() {
   const { login } = useAuth();
 
   useEffect(() => {
+    // Check if the user is already logged in
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setUsername(userData.username);
+      setIsHostLogin(userData.isHost);
+      setIsHost(userData.isHost);
+      navigate(userData.isHost ? "/host-dashboard" : "/waiting-room", {
+        state: { username: userData.username },
+      });
+    }
+
     socketService.registerHandlers({
       gameStarted: () => {
         console.log("Game started");
@@ -36,8 +48,8 @@ export default function Home() {
 
   const checkIfHost = (value) => {
     setUsername(value);
-    setIsHostLogin(value.toLowerCase() === "host");
-    setIsHost(value.toLowerCase() === "host");
+    setIsHostLogin(value.toLowerCase() === "admin");
+    setIsHost(value.toLowerCase() === "admin");
   };
 
   const handleSubmit = async (e) => {
@@ -58,19 +70,17 @@ export default function Home() {
     setAuthError("");
 
     try {
-      const serverUrl = import.meta.env.VITE_PROD_BACKEND_HTTP;
+      const serverUrl = import.meta.env.VITE_BACKEND_HTTP;
       await socketService.connect(serverUrl, username, password);
 
       // Simulate user data (adjust based on your backend response)
       const userData = {
         username,
+        password,
         isHost: isHostLogin,
-        userId: username, // Replace with actual userId from backend
       };
 
       login(userData); // Update auth context
-
-      console.log("User logged in:", userData);
 
       // Navigate based on user role
       if (isHostLogin) {

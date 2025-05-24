@@ -3,18 +3,36 @@ import socketService from "../services/socketService";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function WaitingRoom() {
-  const [hostStatus, setHostStatus] = useState("offline"); // "offline", "online", "starting"
+  const [hostStatus, setHostStatus] = useState("offline");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(5);
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const { username } = location.state || { username: "Guest" };
 
   useEffect(() => {
     socketService.registerHandlers({
-      gameStarted: () => {
+      gameStarted: (data) => {
         setHostStatus("starting");
         setMessage("Game is starting...");
+
+        // Request updated room details to get latest gameInProgress status
+        socketService.requestRoomDetails();
+      },
+
+      kicked: (data) => {
+        // check if the user is kicked
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          alert("You have been kicked from the game. Reason: " + data.reason);
+          socketService.disconnect();
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        } else {
+          alert("You have been logged out. Please log in again.");
+          localStorage.removeItem("user");
+          window.location.href = "/";
+        }
       },
 
       error: (error) => {
@@ -26,38 +44,34 @@ export default function WaitingRoom() {
     });
 
     return () => {
-      // Clean up
+      // Restore original handlers instead of clearing all
       socketService.clearHandlers();
     };
   }, []);
 
-  // if the game is started, wait for 5 seconds and then redirect to the game page
+  // Countdown effect for UI feedback when game is starting
   useEffect(() => {
     if (hostStatus === "starting") {
       const countdownTimer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
+            navigate("/game");
             clearInterval(countdownTimer);
             return 0;
           }
-
           return prev - 1;
         });
       }, 1000);
 
-      const navigationTimer = setTimeout(() => {
-        navigate("/game");
-      }, 5000);
-
       return () => {
         clearInterval(countdownTimer);
-        clearTimeout(navigationTimer);
       };
     }
   }, [hostStatus, navigate]);
 
   const onBack = () => {
     socketService.disconnect();
+    localStorage.removeItem("user");
     // Navigate back to login page
     window.location.href = "/";
   };

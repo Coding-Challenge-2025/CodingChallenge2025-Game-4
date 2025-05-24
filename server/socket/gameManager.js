@@ -1,327 +1,327 @@
-import fs from 'fs';
-import path from 'path';
+import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class GameManager {
-    constructor() {
-        this.rooms = new Map();
+  constructor() {
+    this.rooms = new Map();
+  }
+
+  createRoom(roomId, options) {
+    if (this.rooms.has(roomId)) {
+      throw new Error(`Room ${roomId} already exists`);
     }
 
-    createRoom(roomId, options) {
-        if (this.rooms.has(roomId)) {
-            throw new Error(`Room ${roomId} already exists`);
-        }
-        
-        const room = {
-            id: roomId, 
-            name: options.name || "Default Room",
-            isPrivate: options.isPrivate || false,
-            maxPlayers: options.maxPlayers || 4,
-            createdBy: options.createdBy,
-            creatorName: options.creatorName,
-            createdAt: Date.now(),
-            players: [],
-            gameInProgress: false,
-            currentRound: 0, 
-            currentShape: null,
-            roundStartTime: null,
-            roundEndTime: null,
-            timer: null,
-            chat: [],
-            isActive: options.isActive !== undefined ? options.isActive : true,
-            hostId: options.hostId || null
-        };
+    const room = {
+      id: roomId,
+      name: options.name || "Default Room",
+      minPlayersToStart: options.minPlayersToStart || 2,
+      maxPlayers: options.maxPlayers || 4,
+      createdBy: options.createdBy,
+      createdAt: Date.now(),
+      players: [],
+      gameDuration: options.gameDuration || 10,
+      gameInProgress: false,
+      gameStartTime: null,
+      gameEndTime: null,
+      timer: null,
+      isActive: options.isActive !== undefined ? options.isActive : true,
+      hostId: options.hostId || null,
+    };
 
-        this.rooms.set(roomId, room);
-        return room;
+    this.rooms.set(roomId, room);
+    return room;
+  }
+
+  getRoom(roomId) {
+    return this.rooms.get(roomId);
+  }
+
+  getRoomDetails(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    getRoom(roomId) {
-        return this.rooms.get(roomId);
+    return {
+      id: room.id,
+      name: room.name,
+      minPlayersToStart: room.minPlayersToStart,
+      maxPlayers: room.maxPlayers,
+      createdBy: room.createdBy,
+      createdAt: room.createdAt,
+      gameInProgress: room.gameInProgress,
+      gameDuration: room.gameDuration,
+      gameEndTime: room.gameEndTime,
+      isActive: room.isActive,
+      hostId: room.hostId,
+      players: room.players,
+    };
+  }
+
+  addPlayerToRoom(roomId, playerSocketId, playerData) {
+    const room = this.getRoom(roomId);
+
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    getRoomDetails(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        return {
-            id: room.id,
-            name: room.name,
-            isPrivate: room.isPrivate,
-            maxPlayers: room.maxPlayers,
-            createdBy: room.createdBy,
-            creatorName: room.creatorName,
-            createdAt: room.createdAt,
-            players: room.players,
-            gameInProgress: room.gameInProgress,
-            currentRound: room.currentRound,
-            currentShape: room.currentShape,
-            roundEndTime: room.roundEndTime,
-            isActive: room.isActive,
-            hostId: room.hostId,
-        };
+    if (room.players.length > room.maxPlayers) {
+      throw new Error(`Room ${roomId} is full`);
     }
 
-    addPlayerToRoom(roomId, playerId, playerData) {
-        const room = this.getRoom(roomId);
-
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        if (room.players.length >= room.maxPlayers) {
-            throw new Error(`Room ${roomId} is full`);
-        }
-
-        if (room.players.some(player => player.id === playerId)) {
-            throw new Error(`Player ${playerId} is already in the room`);
-        }
-
-        room.players.push(playerData);
+    if (room.players.some((player) => player.socketId === playerSocketId)) {
+      throw new Error(`Player ${playerId} is already in the room`);
     }
 
-    removePlayerFromRoom(roomId, playerId) {
-        const room = this.getRoom(roomId);
+    room.players.push({
+      ...playerData,
+      socketId: playerSocketId,
+    });
+  }
 
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+  checkPlayerInRoom(roomId, playerId) {
+    const room = this.getRoom(roomId);
 
-        room.players = room.players.filter(player => player.id !== playerId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    getPlayersInRoom(roomId) {
-        const room = this.getRoom(roomId);
+    return room.players.some((player) => player.userId === playerId);
+  }
 
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+  removePlayerFromRoom(roomId, playerSocketId) {
+    const room = this.getRoom(roomId);
 
-        return room.players;
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    startGame(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.players = room.players.filter(
+      (player) => player.socketId !== playerSocketId
+    );
+  }
 
-        room.gameInProgress = true;
-        room.currentRound = 1;
-
-        room.players.forEach((player) => {
-            player.score = 0;
-            player.status = 'playing';
-            player.currentShape = null;
-            player.roundScores = [];
-        })
+  updatePlayerInRoom(roomId, playerSocketId, playerData) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    generateShapeForRoom(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        // If a specific shape was selected by the host, use that
-        if (room.nextShapeId) {
-            try {
-                const shapeId = room.nextShapeId
-                const shapePath = path.join(__dirname, `../data/shapes/shape${shapeId}.txt`)
-
-                if (fs.existsSync(shapePath)) {
-                const content = fs.readFileSync(shapePath, "utf8").trim().split("\n")
-                const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number))
-                room.currentShape = matrix
-                room.nextShapeId = null // Reset for next time
-                return matrix
-                }
-            } catch (error) {
-                console.error("Error loading selected shape file:", error)
-            }
-        }
-
-        try {
-            const shapeId = (room.currentRound % 5) + 1;
-            const shapePath = path.join(__dirname, `../data/shapes/shape${shapeId}.txt`);
-
-            if (fs.existsSync(shapePath)) {
-                const content = fs.readFileSync(shapePath, "utf8").trim().split("\n");
-                const matrix = content.slice(1).map((line) => line.trim().split(/\s+/).map(Number));
-                room.currentShape = matrix;
-
-                return matrix;
-            }
-        } catch (error) {
-            console.error(`Error reading shape file: ${error.message}`);
-            throw new Error("Failed to generate shape due to file error");
-        }
+    const playerIndex = room.players.findIndex(
+      (player) => player.socketId === playerSocketId
+    );
+    if (playerIndex === -1) {
+      throw new Error(`Player ${playerSocketId} not found in room ${roomId}`);
     }
 
-    setRoundTimer(roomId, endTime) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.players[playerIndex] = {
+      ...room.players[playerIndex],
+      ...playerData,
+    };
 
-        room.roundEndTime = endTime;
+    return room.players[playerIndex];
+  }
+
+  findPlayerInRoom(roomId, playerId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    setRoundStartTime(roomId, startTime) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    // print all players id in the room
+    const playerIds = room.players.map((player) => player.userId);
+    // console.log("Player IDs in room:", playerIds);
 
-        room.roundStartTime = startTime;
+    const player = room.players.find((player) => player.userId === playerId);
+    return player || null;
+  }
+
+  getPlayersInRoom(roomId) {
+    const room = this.getRoom(roomId);
+
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    setRoomTimer(roomId, timer) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    return room.players;
+  }
 
-        room.timer = timer;
+  startGame(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    udpatePlayerScore(roomId, playerId, score, shape) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.gameInProgress = true;
 
-        const player = room.players.find(player => player.id === playerId);
-        if (!player) {
-            throw new Error(`Player ${playerId} not found in room ${roomId}`);
-        }
+    room.players.forEach((player) => {
+      if (!player.isHost) {
+        player.status = "playing";
+      }
+    });
+  }
 
-        player.score = score;
-        player.status = "summitted";
-        player.currentShape = shape;
+  endGame(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    allPlayersSubmitted(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.gameInProgress = false;
+    room.players.forEach((player) => {
+      if (!player.isHost) {
+        player.status = "waiting";
+        player.score = 0;
+        player.passedShapes = [];
+      }
+    });
+    clearInterval(room.timer);
+    room.timer = null;
 
-        return room.players.every(player => player.status === "summitted");
+    // change all players status to waiting (except the host)
+    room.players.forEach((player) => {
+      if (player.socketId !== room.hostId) {
+        player.status = "waiting";
+      }
+    });
+  }
+
+  setRoomTimer(roomId, timer) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    endRound(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.timer = timer;
+  }
 
-        room.players.forEach((player) => {
-            player.roundScores = player.roundScores || [];
-            player.roundScores.push({
-                round: room.currentRound,
-                score: player.score || 0
-            })
-
-            player.status = "waiting";
-        })
-
-        if (room.timer) {
-            clearInterval(room.timer);
-            room.timer = null;
-        }
+  getRoomTimer(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    getRoundResults(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    return room.timer;
+  }
 
-        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
-
-        return {
-            round: room.currentRound, 
-            players: sortedPlayers.map((player) => ({
-                id: player.id, 
-                userId: player.userId,
-                username: player.username,
-                score: player.score || 0,
-                shape: player.currentShape,
-            })),
-            targetShape: room.currentShape,
-        }
+  clearRoomTimer(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    resetRound(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.timer = null;
+  }
 
-        room.currentRound += 1;
-        room.currentShape = null;
-        room.roundEndTime = null;
-        room.players.forEach((player) => {
-            player.status = "playing";
-            player.currentShape = null;
-            player.completionTime = null;
-        });
+  resetGame(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    resetAllScores(roomId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.roomEndTime = null;
+    room.players.forEach((player) => {
+      player.status = "waiting";
+    });
+  }
 
-        room.players.forEach((player) => {
-            player.score = 0;
-            player.roundScores = [];
-        })
+  resetAllScores(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    assignHostToPlayer(roomId, playerId) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    room.players.forEach((player) => {
+      player.score = 0;
+    });
+  }
 
-        const player = room.players.find((p) => p.id === playerId);
-        if (!player) return;
-
-        // Remove host status from all players
-        room.players.forEach((player) => (p.isHost = false));
-
-        // Assign the host to the player
-        player.isHost = true;
-        room.createdBy = player.id;
-        room.creatorName = player.username;
-        room.hostId = player.userId;
+  updatePlayerScore(roomId, playerId, newScore) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
 
-    updateRoomName(roomId, name) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
-
-        room.name = name;
+    let player = room.players.find((player) => player.userId === playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
     }
 
-    updateMaxPlayers(roomId, maxPlayers) {
-        const room = this.getRoom(roomId);
-        if (!room) {
-            throw new Error(`Room ${roomId} does not exist`);
-        }
+    player.score = newScore;
+    return player;
+  }
 
-        room.maxPlayers = maxPlayers;
+  assignHostToPlayer(roomId, playerId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
     }
+
+    const player = room.players.find((p) => p.socketId === playerId);
+    if (!player) return;
+
+    // Remove host status from all players
+    room.players.forEach((player) => (player.isHost = false));
+
+    // Assign the host to the player
+    player.isHost = true;
+    room.createdBy = player.socketId;
+    room.creatorName = player.username;
+    room.hostId = player.userId;
+  }
+
+  updateRoomSettings(roomId, settings) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    room.name = settings.name;
+    room.minPlayersToStart = settings.minPlayersToStart;
+    room.maxPlayers = settings.maxPlayers;
+    room.gameDuration = settings.gameDuration;
+
+    return room;
+  }
+
+  checkShapePassed(roomId, playerId, shapeId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    const player = room.players.find((p) => p.userId === playerId);
+    if (!player.passedShapes) return true;
+
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    }
+
+    console.log("Player passed shapes:", player.passedShapes);
+
+    return !player.passedShapes.includes(shapeId);
+  }
+
+  addShapeToPassedShapes(roomId, playerId, shapeId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    const player = room.players.find((p) => p.userId === playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found in room ${roomId}`);
+    }
+
+    if (!player.passedShapes) {
+      player.passedShapes = [];
+    }
+
+    player.passedShapes.push(shapeId);
+  }
 }
 
 export default GameManager;

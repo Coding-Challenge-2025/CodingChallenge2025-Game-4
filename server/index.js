@@ -3,7 +3,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import apiRoutes from "./routes/api.route.js";
 import { Server } from "socket.io";
-import setupSocketServer from "./socket/socketServer.js";
+import setupSocketServer from "./socket/newServer.js";
 import http from "http";
 
 const app = express();
@@ -28,6 +28,7 @@ app.use(express.json());
 // routes
 app.use("/api", apiRoutes);
 
+// health check route
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",

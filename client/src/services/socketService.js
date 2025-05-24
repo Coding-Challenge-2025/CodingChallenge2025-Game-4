@@ -3,10 +3,51 @@ import { io } from "socket.io-client";
 class SocketService {
   constructor() {
     this.socket = null;
-    this.handlers = {};
-    this.globalHandlers = {}; // Add global handlers that persist across registerHandlers calls
+    this.handlers = {}; // Single handlers object
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 3;
+    this.waitingForHost = true;
+    this.sessionInfo = null;
+  }
+
+  saveSession(username, password, isHost) {
+    const sessionInfo = { username, password, isHost };
+    localStorage.setItem("voxelcode_session", JSON.stringify(sessionInfo));
+    this.sessionInfo = sessionInfo;
+  }
+
+  getSession() {
+    if (this.sessionInfo) return this.sessionInfo;
+
+    try {
+      const sessionData = localStorage.getItem("voxelcode_session");
+      if (sessionData) {
+        this.sessionInfo = JSON.parse(sessionData);
+        return this.sessionInfo;
+      }
+    } catch (error) {
+      console.error("Error retrieving session:", error);
+    }
+    return null;
+  }
+
+  clearSession() {
+    localStorage.removeItem("voxelcode_session");
+    this.sessionInfo = null;
+  }
+
+  hasSession() {
+    return !!this.getSession();
+  }
+
+  async reconnect() {
+    const session = this.getSession();
+    if (!session) {
+      throw new Error("No stored session found");
+    }
+
+    const serverUrl = "http://localhost:3000";
+    return this.connect(serverUrl, session.username, session.password);
   }
 
   connect(serverUrl, username, password) {
@@ -16,9 +57,6 @@ class SocketService {
         this.socket.disconnect();
       }
 
-      console.log(
-        `Authenticate with username: ${username} and password: ${password}`
-      );
       this.connectionAttempts += 1;
 
       // Connect to socket server with auth
@@ -38,7 +76,16 @@ class SocketService {
         console.log("Connected to socket server");
         this.connectionAttempts = 0;
         this.registerSocketEvents();
-        resolve(this.socket); // Resolve with socket instance
+
+        // save session info
+        const isHost = username.toLowerCase() === "host";
+        this.saveSession(username, password, isHost);
+
+        if (isHost && this.waitingForHost) {
+          this.waitingForHost = false;
+        }
+
+        resolve(this.socket);
       });
 
       this.socket.on("connect_error", (error) => {
@@ -46,7 +93,7 @@ class SocketService {
 
         // Check if the error is about waiting for host
         if (error.message && error.message.includes("waiting for host")) {
-          // Special error for waiting for host
+          this.waitingForHost = true;
           reject(new Error("Waiting for host to join"));
         } else if (this.connectionAttempts >= this.maxConnectionAttempts) {
           reject(
@@ -65,6 +112,7 @@ class SocketService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.clearSession();
     }
   }
 
@@ -74,17 +122,17 @@ class SocketService {
       if (this.handlers.roomJoined) {
         this.handlers.roomJoined(data);
       }
-      if (this.globalHandlers.roomJoined) {
-        this.globalHandlers.roomJoined(data);
-      }
     });
 
     this.socket.on("player_joined", (data) => {
       if (this.handlers.playerJoined) {
         this.handlers.playerJoined(data);
       }
-      if (this.globalHandlers.playerJoined) {
-        this.globalHandlers.playerJoined(data);
+    });
+
+    this.socket.on("player_kicked", (data) => {
+      if (this.handlers.playerKicked) {
+        this.handlers.playerKicked(data);
       }
     });
 
@@ -92,56 +140,30 @@ class SocketService {
       if (this.handlers.playerDisconnected) {
         this.handlers.playerDisconnected(data);
       }
-      if (this.globalHandlers.playerDisconnected) {
-        this.globalHandlers.playerDisconnected(data);
-      }
-    });
-
-    this.socket.on("new_host", (data) => {
-      if (this.handlers.newHost) {
-        this.handlers.newHost(data);
-      }
-      if (this.globalHandlers.newHost) {
-        this.globalHandlers.newHost(data);
-      }
-    });
-
-    this.socket.on("host_left", (data) => {
-      console.log("Host left event received:", data);
-      if (this.handlers.host_left) {
-        this.handlers.host_left(data);
-      }
-      if (this.globalHandlers.host_left) {
-        this.globalHandlers.host_left(data);
-      }
     });
 
     this.socket.on("kicked", (data) => {
       if (this.handlers.kicked) {
         this.handlers.kicked(data);
       }
-      if (this.globalHandlers.kicked) {
-        this.globalHandlers.kicked(data);
-      }
     });
 
-    this.socket.on("player_kicked", (data) => {
-      if (this.handlers.player_kicked) {
-        this.handlers.player_kicked(data);
-      }
-      if (this.globalHandlers.player_kicked) {
-        this.globalHandlers.player_kicked(data);
+    this.socket.on("room_updated", (data) => {
+      if (this.handlers.roomUpdated) {
+        this.handlers.roomUpdated(data);
       }
     });
 
     // Game events
     this.socket.on("game_started", (data) => {
-      console.log("Game started event received:", data);
       if (this.handlers.gameStarted) {
         this.handlers.gameStarted(data);
       }
-      if (this.globalHandlers.gameStarted) {
-        this.globalHandlers.gameStarted(data);
+    });
+
+    this.socket.on("game_ended", (data) => {
+      if (this.handlers.gameEnded) {
+        this.handlers.gameEnded(data);
       }
     });
 
@@ -149,17 +171,11 @@ class SocketService {
       if (this.handlers.timeUpdate) {
         this.handlers.timeUpdate(data);
       }
-      if (this.globalHandlers.timeUpdate) {
-        this.globalHandlers.timeUpdate(data);
-      }
     });
 
     this.socket.on("solution_result", (data) => {
       if (this.handlers.solutionResult) {
         this.handlers.solutionResult(data);
-      }
-      if (this.globalHandlers.solutionResult) {
-        this.globalHandlers.solutionResult(data);
       }
     });
 
@@ -167,44 +183,25 @@ class SocketService {
       if (this.handlers.scoresUpdated) {
         this.handlers.scoresUpdated(data);
       }
-      if (this.globalHandlers.scoresUpdated) {
-        this.globalHandlers.scoresUpdated(data);
-      }
-    });
+    })
 
-    this.socket.on("round_ended", (data) => {
-      if (this.handlers.roundEnded) {
-        this.handlers.roundEnded(data);
-      }
-      if (this.globalHandlers.roundEnded) {
-        this.globalHandlers.roundEnded(data);
-      }
-    });
-
-    this.socket.on("new_round_started", (data) => {
-      if (this.handlers.newRoundStarted) {
-        this.handlers.newRoundStarted(data);
-      }
-      if (this.globalHandlers.newRoundStarted) {
-        this.globalHandlers.newRoundStarted(data);
+    this.socket.on("score_updated", (data) => {
+      if (this.handlers.scoreUpdated) {
+        console.log("Score updated:", data);
+        this.handlers.scoreUpdated(data);
       }
     });
 
     this.socket.on("scores_reset", (data) => {
-      if (this.handlers.scores_reset) {
-        this.handlers.scores_reset(data);
-      }
-      if (this.globalHandlers.scores_reset) {
-        this.globalHandlers.scores_reset(data);
+      if (this.handlers.scoresReset) {
+        console.log("Scores reset:", data);
+        this.handlers.scoresReset(data);
       }
     });
 
     this.socket.on("settings_updated", (data) => {
-      if (this.handlers.settings_updated) {
-        this.handlers.settings_updated(data);
-      }
-      if (this.globalHandlers.settings_updated) {
-        this.globalHandlers.settings_updated(data);
+      if (this.handlers.settingsUpdated) {
+        this.handlers.settingsUpdated(data);
       }
     });
 
@@ -213,65 +210,55 @@ class SocketService {
       if (this.handlers.newMessage) {
         this.handlers.newMessage(data);
       }
-      if (this.globalHandlers.newMessage) {
-        this.globalHandlers.newMessage(data);
-      }
-    });
-
-    // Leaderboard events
-    this.socket.on("leaderboard_data", (data) => {
-      if (this.handlers.leaderboard_data) {
-        this.handlers.leaderboard_data(data);
-      }
-      if (this.globalHandlers.leaderboard_data) {
-        this.globalHandlers.leaderboard_data(data);
-      }
-    });
-
-    // Shape events
-    this.socket.on("available_shapes", (data) => {
-      if (this.handlers.available_shapes) {
-        this.handlers.available_shapes(data);
-      }
-      if (this.globalHandlers.available_shapes) {
-        this.globalHandlers.available_shapes(data);
-      }
-    });
-
-    // Error events
-    this.socket.on("error", (error) => {
-      console.error("Socket server error:", error);
-      if (this.handlers.error) {
-        this.handlers.error(error);
-      }
-      if (this.globalHandlers.error) {
-        this.globalHandlers.error(error);
-      }
     });
 
     // Disconnect event
     this.socket.on("disconnect", (reason) => {
-      console.log("Disconnected:", reason);
       if (this.handlers.disconnect) {
         this.handlers.disconnect(reason);
-      }
-      if (this.globalHandlers.disconnect) {
-        this.globalHandlers.disconnect(reason);
       }
     });
   }
 
   registerHandlers(handlers) {
-    this.handlers = handlers;
+    // Merge new handlers with existing ones
+    this.handlers = { ...this.handlers, ...handlers };
+
+    // Re-register socket listeners to ensure all handlers are active
+    if (this.socket && this.socket.connected) {
+      Object.keys(this.handlers).forEach((event) => {
+        this.socket.off(event); // Remove existing listener to prevent duplicates
+        this.socket.on(event, (data) => {
+          if (this.handlers[event]) {
+            this.handlers[event](data);
+          }
+        });
+      });
+    }
   }
 
-  // Register global handlers that persist across registerHandlers calls
-  registerGlobalHandlers(handlers) {
-    this.globalHandlers = handlers;
+  removeHandlers(eventNames) {
+    if (Array.isArray(eventNames)) {
+      eventNames.forEach((name) => {
+        if (this.socket) {
+          this.socket.off(name); // Remove socket listener
+        }
+        delete this.handlers[name];
+      });
+    } else if (typeof eventNames === "string") {
+      if (this.socket) {
+        this.socket.off(eventNames);
+      }
+      delete this.handlers[eventNames];
+    }
   }
 
-  // Clear all handlers
   clearHandlers() {
+    if (this.socket) {
+      Object.keys(this.handlers).forEach((event) => {
+        this.socket.off(event); // Remove all socket listeners
+      });
+    }
     this.handlers = {};
   }
 
@@ -284,27 +271,20 @@ class SocketService {
     }
   }
 
-  submitSolution(code, language) {
+  endGame() {
     if (this.socket && this.socket.connected) {
-      this.socket.emit("submit_solution", { code, language });
+      console.log("Ending game...");
+      this.socket.emit("end_game");
+    } else {
+      console.error("Cannot end game: Socket not connected");
+    }
+  }
+
+  submitPassedStatus(shapeId, score) {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("shape_passed", { shapeId, score });
     } else {
       console.error("Cannot submit solution: Socket not connected");
-    }
-  }
-
-  startNewRound() {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("start_new_round");
-    } else {
-      console.error("Cannot start new round: Socket not connected");
-    }
-  }
-
-  sendMessage(message) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("send_message", { message });
-    } else {
-      console.error("Cannot send message: Socket not connected");
     }
   }
 
@@ -319,6 +299,14 @@ class SocketService {
     }
   }
 
+  requestRoomDetails() {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("request_roomdetails");
+    } else {
+      console.error("Cannot request room details: Socket not connected");
+    }
+  }
+
   requestLeaderboard() {
     if (this.socket && this.socket.connected) {
       this.socket.emit("request_leaderboard");
@@ -327,13 +315,7 @@ class SocketService {
     }
   }
 
-  requestAvailableShapes() {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit("request_available_shapes");
-    } else {
-      console.error("Cannot request available shapes: Socket not connected");
-    }
-  }
+  
 
   sendSystemMessage(message) {
     if (this.socket && this.socket.connected) {
@@ -348,14 +330,18 @@ class SocketService {
   }
 
   get isHost() {
-    return this.socket && this.socket.auth && this.socket.auth.isHost;
+    const session = this.getSession();
+    return session && session.isHost;
   }
 
   // Add a method to check if the current user is a host
   isUserHost() {
-    return (
-      this.socket && this.socket.auth && this.socket.auth.username === "host"
-    );
+    const session = this.getSession();
+    return session && session.username.toLowerCase === "host";
+  }
+
+  isConnected() {
+    return this.socket && this.socket.connected;
   }
 
   // Add a new method to explicitly join room after handlers are set up

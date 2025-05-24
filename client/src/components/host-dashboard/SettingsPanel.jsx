@@ -98,25 +98,25 @@ export default function SettingsPanel({
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">
-              Round Duration (minutes)
+              Game Duration (minutes)
             </label>
             {isEditingSettings ? (
               <input
                 type="number"
                 min="1"
                 max="10"
-                value={roomSettings.roundDuration}
+                value={roomSettings.gameDuration}
                 onChange={(e) =>
                   setRoomSettings({
                     ...roomSettings,
-                    roundDuration: Number.parseInt(e.target.value),
+                    gameDuration: Number.parseInt(e.target.value),
                   })
                 }
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
               />
             ) : (
               <div className="bg-gray-700 px-3 py-2 rounded text-sm">
-                {roomSettings.roundDuration}
+                {roomSettings.gameDuration}
               </div>
             )}
           </div>

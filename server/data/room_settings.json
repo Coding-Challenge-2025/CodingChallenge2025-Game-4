@@ -1,0 +1,8 @@
+{
+  "settings": {
+    "name": "Coding Challenge 2025",
+    "maxPlayers": 1,
+    "minPlayersToStart": 1,
+    "gameDuration": 10
+  }
+}

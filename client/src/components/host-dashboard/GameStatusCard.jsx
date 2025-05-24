@@ -1,10 +1,13 @@
+"use client";
+
 export default function GameStatusCard({
   room,
   players,
   roomSettings,
+  timeLeft,
+  playerScore,
   onStartGame,
-  onEndRound,
-  onStartNewRound,
+  onEndGame,
 }) {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg mb-6">
@@ -26,7 +29,8 @@ export default function GameStatusCard({
             <div className="flex flex-col">
               <span className="text-xs text-gray-400">Players</span>
               <span className="text-sm font-bold mt-1">
-                {players.length} / {roomSettings.maxPlayers}
+                {players.length - 1 > 0 ? players.length - 1 : 0} /{" "}
+                {roomSettings.maxPlayers}
               </span>
             </div>
             <div className="flex flex-col">
@@ -35,18 +39,26 @@ export default function GameStatusCard({
                 {roomSettings.name}
               </span>
             </div>
-            {room?.currentRound > 0 && (
+            {playerScore !== undefined && (
               <div className="flex flex-col">
-                <span className="text-xs text-gray-400">Round</span>
+                <span className="text-xs text-gray-400">Your Score</span>
+                <span className="text-sm font-bold mt-1 text-blue-300">
+                  {playerScore}%
+                </span>
+              </div>
+            )}
+            {room?.gameInProgress && timeLeft !== undefined && (
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-400">Time Left</span>
                 <span className="text-sm font-bold mt-1">
-                  {room.currentRound}
+                  {formatTime(timeLeft)}
                 </span>
               </div>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
             {!room?.gameInProgress &&
-              players.length >= roomSettings.minPlayersToStart && (
+              players.length > roomSettings.minPlayersToStart && (
                 <button
                   onClick={onStartGame}
                   className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
@@ -56,18 +68,10 @@ export default function GameStatusCard({
               )}
             {room?.gameInProgress && (
               <button
-                onClick={onEndRound}
+                onClick={onEndGame}
                 className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
               >
-                End Round
-              </button>
-            )}
-            {!room?.gameInProgress && room?.currentRound > 0 && (
-              <button
-                onClick={onStartNewRound}
-                className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm"
-              >
-                Next Round
+                End Game
               </button>
             )}
           </div>
@@ -75,4 +79,12 @@ export default function GameStatusCard({
       </div>
     </div>
   );
+}
+
+function formatTime(ms) {
+  if (ms === undefined) return "--:--";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }
