@@ -199,6 +199,13 @@ class SocketService {
       }
     });
 
+    this.socket.on("players_reset", (data) => {
+      if (this.handlers.playersReset) {
+        console.log("Player reset:", data);
+        this.handlers.playersReset(data);
+      }
+    });
+
     this.socket.on("settings_updated", (data) => {
       if (this.handlers.settingsUpdated) {
         this.handlers.settingsUpdated(data);
@@ -314,8 +321,6 @@ class SocketService {
       console.error("Cannot request leaderboard: Socket not connected");
     }
   }
-
-  
 
   sendSystemMessage(message) {
     if (this.socket && this.socket.connected) {

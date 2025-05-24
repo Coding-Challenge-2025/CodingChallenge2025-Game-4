@@ -195,14 +195,24 @@ export default function setupSocketServer(io) {
           writePlayerDataToFile(player.userId, player);
         }
 
-        io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
-          shapeId,
+        socket.emit("score_updated", {
+          message: `You passed the shape ${shapeId} and got ${score} points`,
           playerId: socket.user.id,
-          playerName: socket.user.username,
+          playerName: player.username,
+          score: score
         });
+
+        // io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
+        //   shapeId,
+        //   playerId: socket.user.id,
+        //   playerName: socket.user.username,
+        // });
 
         io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
           message: "Scores have been updated",
+          playerId: socket.user.id,
+          playerName: player.username,
+          score: score,
           players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
         });
       }

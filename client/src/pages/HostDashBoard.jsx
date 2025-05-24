@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { ToastContainer, toast } from "react-toastify";
 import socketService from "../services/socketService";
 import DashBoardHeader from "../components/host-dashboard/DashBoardHeader";
 import GameStatusCard from "../components/host-dashboard/GameStatusCard";
@@ -11,7 +12,7 @@ import ErrorScreen from "../components/host-dashboard/ErrorScreen";
 const defaultRoomSettings = {
   name: "Coding Challenge 2025",
   maxPlayers: 4,
-  minPlayersToStart: 2,
+  minPlayersToStart: 1,
   gameDuration: 10,
 };
 
@@ -26,6 +27,8 @@ export default function HostDashboard() {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState("");
+
+  const toastedHandled = useRef(false);
 
   useEffect(() => {
     socketService.registerHandlers({
@@ -43,7 +46,6 @@ export default function HostDashboard() {
         setRoom(data.room);
       },
       roomUpdated: (data) => {
-        console.log("Room updated:", data.room);
         setRoom(data.room);
         setRoomSettings(getRoomSettings(data.room));
         setPlayers(data.room.players);
@@ -61,6 +63,31 @@ export default function HostDashboard() {
       },
       scoresUpdated: (data) => {
         setPlayers(data.players);
+
+        console.log("Scores updated:", data.players);
+        if (data.score) {
+          toast.success(`${data.playerName} has scored ${data.score} points!`, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+          });
+        }
+      },
+      playersReset: (data) => {
+        if (toastedHandled.current) return;
+        toastedHandled.current = true;
+
+        setPlayers(data.players);
+        toast.info("All players have been reset.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          onClose: () => {
+            toastedHandled.current = false;
+          },
+        });
       },
       settings_updated: (data) => {
         setRoomSettings(data.settings);
@@ -85,6 +112,7 @@ export default function HostDashboard() {
     return () => {
       setIsLoading(false);
       socketService.clearHandlers();
+      toastedHandled.current = false;
     };
   }, [isLoading]);
 
@@ -92,9 +120,9 @@ export default function HostDashboard() {
     socketService.startGame();
   };
 
-  const handleResetScores = () => {
-    if (window.confirm("Are you sure you want to reset all player scores?")) {
-      socketService.adminCommand("reset_scores", {});
+  const handleResetPlayers = () => {
+    if (window.confirm("Are you sure you want to reset all players?")) {
+      socketService.adminCommand("reset_players", {});
     }
   };
 
@@ -154,6 +182,12 @@ export default function HostDashboard() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <DashBoardHeader onLogOut={logOut} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+      />
 
       <div className="container mx-auto px-4 py-4">
         <GameStatusCard
@@ -169,8 +203,9 @@ export default function HostDashboard() {
           <PlayersTable
             players={players}
             onKickPlayer={handleKickPlayer}
-            onResetScores={handleResetScores}
+            onResetPlayers={handleResetPlayers}
             onEditScore={handleEditScore}
+            canResetPlayers={!room?.gameInProgress}
           />
 
           <SettingsPanel
@@ -201,8 +236,6 @@ function getRoomSettings(room) {
     name: room.name,
     maxPlayers: room.maxPlayers,
     minPlayersToStart: room.minPlayersToStart,
-    gameDuration: room.gameDuration
+    gameDuration: room.gameDuration,
   };
 }
-
-

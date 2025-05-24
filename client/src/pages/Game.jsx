@@ -5,6 +5,7 @@ import GridComponent from "../components/GridComponent";
 import socketService from "../services/socketService";
 import { getCodeTemplate } from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function Game() {
   const [code, setCode] = useState("");
@@ -21,10 +22,12 @@ export default function Game() {
   const [shapeResults, setShapeResults] = useState(new Map());
   const [similarity, setSimilarity] = useState(0);
   const navigate = useNavigate();
+  const [errorDetails, setErrorDetails] = useState("");
 
   // Add refs to track if events have been handled
   const gameEndedHandled = useRef(false);
   const kickedHandled = useRef(false);
+  const toastedHandled = useRef(false);
 
   // For shape selection button
   const [shapeOptions, setShapeOptions] = useState([
@@ -208,6 +211,24 @@ export default function Game() {
           }
         }
       },
+      scoreUpdated: (data) => {
+        if (toastedHandled.current) return;
+        toastedHandled.current = true;
+
+        // console.log("Score updated:", data);
+        toast.success(`Your gained ${data.score} points!`, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          onClose: () => {
+            toastedHandled.current = false;
+          },
+        });
+      },
       scoresUpdated: (data) => {
         const currentPlayer = JSON.parse(localStorage.getItem("user"));
         const player = data.players.find(
@@ -227,7 +248,15 @@ export default function Game() {
         if (player) {
           setScore(player.score);
         }
-        alert("Scores have been reset by the host.");
+        toast.info("Scores have been reset!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
 
         setPlayers(data.players);
       },
@@ -250,6 +279,7 @@ export default function Game() {
       socketService.clearHandlers();
       gameEndedHandled.current = false;
       kickedHandled.current = false;
+      toastedHandled.current = false;
     };
   }, [navigate]);
 
@@ -296,6 +326,7 @@ export default function Game() {
   const runCode = async () => {
     setIsRunning(true);
     setGameStatus("running");
+    setErrorDetails(""); // Clear previous error details
 
     try {
       const response = await fetch(
@@ -333,6 +364,45 @@ export default function Game() {
         console.warn("Invalid output from server:", data.message);
         setGameStatus("error");
         updateShapeResult(challengeId, false);
+
+        // Handle code compilation or execution errors
+        if (data.details) {
+          setErrorDetails(data.details);
+          toast.error(`Code Error: ${data.details}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+        } else if (data.message) {
+          setErrorDetails(data.message);
+          toast.error(`Execution failed: ${data.message}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+        } else {
+          setErrorDetails("Unknown error occurred");
+          toast.error(
+            "Code execution failed. Please check your code and try again.",
+            {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            }
+          );
+        }
       }
     } catch (error) {
       console.error("Code execution failed:", error);
@@ -347,7 +417,7 @@ export default function Game() {
   const newChallenge = async (nextId) => {
     saveCodeToStorage(language, challengeId, code);
     console.log("Next challenge ID:", nextId);
-    setChallengeId(parseInt(nextId));
+    setChallengeId(Number.parseInt(nextId));
 
     try {
       const newShape = await getShapeById(nextId);
@@ -371,6 +441,7 @@ export default function Game() {
   return (
     <main className="min-h-screen flex flex-col bg-gray-900 text-white">
       <div className="flex-1 container mx-auto p-2 flex flex-col">
+        <ToastContainer />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left column - Code Editor */}
           <div className="lg:col-span-5 space-y-4">
@@ -503,6 +574,14 @@ export default function Game() {
                       </span>
                     </div>
                   )}
+                  {gameStatus === "error" && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <span className="px-3 py-1 text-sm bg-red-600 rounded-md font-medium">
+                        ⚠ ERROR
+                      </span>
+                    </div>
+                  )}
                   {gameStatus === "idle" && (
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
@@ -526,13 +605,25 @@ export default function Game() {
                       <span>Attempts: {getCurrentShapeResult().attempts}</span>
                     )}
                   </div>
-                  {score > 0 && score < 100 && (
+                  {similarity > 0 && similarity < 100 && (
                     <div className="text-sm text-yellow-400">
                       Similarity: {similarity}%
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Error details display */}
+              {gameStatus === "error" && errorDetails && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-500 rounded-lg">
+                  <div className="text-sm font-medium text-red-400 mb-1">
+                    Error Details:
+                  </div>
+                  <div className="text-sm text-red-300 font-mono whitespace-pre-wrap">
+                    {errorDetails}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 grid-rows-2 gap-1 h-full bg-emerald-800">
