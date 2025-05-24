@@ -4,7 +4,7 @@ import { useState } from "react";
 export default function PlayersTable({
   players,
   onKickPlayer,
-  onResetScores,
+  onResetPlayers,
   onEditScore,
 }) {
   const [editingPlayerId, setEditingPlayerId] = useState(null);
@@ -50,7 +50,7 @@ export default function PlayersTable({
             Players & Leaderboard
           </h2>
           <button
-            onClick={onResetScores}
+            onClick={onResetPlayers}
             className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm flex items-center"
           >
             <svg
@@ -66,7 +66,7 @@ export default function PlayersTable({
               <path d="M23 4v6h-6"></path>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
-            Reset Scores
+            Reset Players
           </button>
         </div>
 

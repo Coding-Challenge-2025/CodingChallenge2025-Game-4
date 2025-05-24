@@ -72,6 +72,15 @@ export default function HostDashboard() {
           });
         }
       },
+      playersReset: (data) => {
+        setPlayers(data.players);
+        toast.info("All players have been reset.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+        });
+      },
       settings_updated: (data) => {
         setRoomSettings(data.settings);
         setRoom(data.room);
@@ -102,9 +111,9 @@ export default function HostDashboard() {
     socketService.startGame();
   };
 
-  const handleResetScores = () => {
-    if (window.confirm("Are you sure you want to reset all player scores?")) {
-      socketService.adminCommand("reset_scores", {});
+  const handleResetPlayers = () => {
+    if (window.confirm("Are you sure you want to reset all players?")) {
+      socketService.adminCommand("reset_players", {});
     }
   };
 
@@ -185,7 +194,7 @@ export default function HostDashboard() {
           <PlayersTable
             players={players}
             onKickPlayer={handleKickPlayer}
-            onResetScores={handleResetScores}
+            onResetPlayers={handleResetPlayers}
             onEditScore={handleEditScore}
           />
 
