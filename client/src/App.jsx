@@ -13,6 +13,7 @@ import HostDashboard from "./pages/HostDashBoard";
 import Audience from "./pages/Audience";
 import LoadingScreen from "./components/host-dashboard/LoadingScreen";
 import Showcase from "./pages/Showcase";
+import Leaderboard from "./pages/Leaderboard";
 
 const AuthenticatedRoute = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -36,6 +37,7 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/audience" element={<Audience />} />
           <Route path="/showcase" element={<Showcase />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route
             path="/waiting-room"
             element={
