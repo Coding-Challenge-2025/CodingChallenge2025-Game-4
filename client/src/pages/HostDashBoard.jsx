@@ -46,6 +46,8 @@ export default function HostDashboard() {
         setRoom(data.room);
       },
       roomUpdated: (data) => {
+        console.log("Room updated:", data.room);
+
         setRoom(data.room);
         setRoomSettings(getRoomSettings(data.room));
         setPlayers(data.room.players);

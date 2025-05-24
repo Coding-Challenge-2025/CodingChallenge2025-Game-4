@@ -63,7 +63,7 @@ const executeCode = async (req, res, next) => {
       success: true,
       message: isValid ? "Code executed successfully" : "Invalid shape",
       output: result.output,
-      similarity: parseFloat(similarity.toFixed(2)), // e.g., 87.50
+      similarity: parseFloat(similarity.toFixed(2)),
       score: score,
       executionTime: result.executionTime,
     });

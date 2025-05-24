@@ -189,7 +189,9 @@ export default function setupSocketServer(io) {
         );
 
         if (player) {
-          console.log(`Player ${player.username} passed shape ${shapeId} and got ${score} points`);
+          console.log(
+            `Player ${player.username} passed shape ${shapeId} and got ${score} points`
+          );
 
           player.score += score;
           writePlayerDataToFile(player.userId, player);
@@ -199,7 +201,7 @@ export default function setupSocketServer(io) {
           message: `You passed the shape ${shapeId} and got ${score} points`,
           playerId: socket.user.id,
           playerName: player.username,
-          score: score
+          score: score,
         });
 
         // io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
@@ -216,6 +218,13 @@ export default function setupSocketServer(io) {
           players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
         });
       }
+    });
+
+    socket.on("submit_solution", ({ outputShape }) => {
+      writeOutputShapeToFile(socket.user.id, outputShape);
+      console.log(
+        `Player ${socket.user.username} (${socket.user.id}) submitted solution`
+      );
     });
 
     socket.on("admin_command", ({ command, data }) => {
@@ -268,6 +277,21 @@ export default function setupSocketServer(io) {
           io.to(GLOBAL_ROOM_ID).emit("scores_reset", {
             message: "Scores have been reset",
             players,
+          });
+
+          break;
+
+        case "reset_players":
+          gameManager.resetAllPlayers(GLOBAL_ROOM_ID);
+          const resetPlayers = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+
+          for (const player of resetPlayers) {
+            writePlayerDataToFile(player.userId, player);
+          }
+
+          io.to(GLOBAL_ROOM_ID).emit("players_reset", {
+            message: "Players have been reset",
+            players: resetPlayers,
           });
 
           break;
@@ -488,6 +512,21 @@ function getGlobalRoomSettings() {
   } catch (error) {
     console.error("Error reading global room settings file:", error);
     throw new Error("Failed to load global room settings");
+  }
+}
+
+function writeOutputShapeToFile(playerId, outputShape) {
+  const outputPath = path.join(
+    __dirname,
+    "../data/currentShape",
+    `${playerId}_output.json`
+  );
+
+  try {
+    fs.writeFileSync(outputPath, JSON.stringify(outputShape, null, 2));
+  } catch (error) {
+    console.error("Error writing output shape to file:", error);
+    throw new Error("Failed to write output shape");
   }
 }
 
