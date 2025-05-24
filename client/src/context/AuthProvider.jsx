@@ -30,6 +30,10 @@ export function AuthProvider({ children }) {
     loadAuthState();
   }, []);
 
+  const baseURL =
+    import.meta.env.VITE_ENV === "production"
+      ? import.meta.env.VITE_PROD_BACKEND_HTTP
+      : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
   const login = async (userData) => {
     setUser(userData);
 
@@ -37,11 +41,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("user", JSON.stringify(userData));
 
     // connect socket with user data
-    await socketService.connect(
-      import.meta.env.VITE_BACKEND_HTTP,
-      userData.username,
-      userData.password
-    );
+    await socketService.connect(baseURL, userData.username, userData.password);
   };
 
   const logout = () => {

@@ -46,7 +46,12 @@ class SocketService {
       throw new Error("No stored session found");
     }
 
-    const serverUrl = import.meta.env.VITE_BACKEND_HTTP;
+    const baseURL =
+      import.meta.env.VITE_ENV === "production"
+        ? import.meta.env.VITE_PROD_BACKEND_HTTP
+        : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
+
+    const serverUrl = baseURL;
     return this.connect(serverUrl, session.username, session.password);
   }
 
@@ -183,7 +188,7 @@ class SocketService {
       if (this.handlers.scoresUpdated) {
         this.handlers.scoresUpdated(data);
       }
-    })
+    });
 
     this.socket.on("score_updated", (data) => {
       if (this.handlers.scoreUpdated) {

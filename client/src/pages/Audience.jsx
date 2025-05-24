@@ -81,13 +81,18 @@ export default function Audience() {
   ]);
 
   // Fetch player grids every 2 seconds
+  const baseURL =
+    import.meta.env.VITE_ENV === "production"
+      ? import.meta.env.VITE_PROD_BACKEND_HTTP
+      : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
+
   useEffect(() => {
     const fetchPlayerGrids = async () => {
       for (let id = 1; id <= 4; id++) {
         try {
           const response = await fetch(
             // `http://localhost:3000/api/audience/${id}`
-            `${import.meta.env.VITE_BACKEND_HTTP}/api/audience/${id}`
+            `${baseURL}/api/audience/${id}`
           );
           if (!response.ok) {
             throw new Error(`Failed to fetch data for player ${id}`);
