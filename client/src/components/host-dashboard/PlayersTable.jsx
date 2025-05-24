@@ -6,6 +6,7 @@ export default function PlayersTable({
   onKickPlayer,
   onResetPlayers,
   onEditScore,
+  canResetPlayers = true,
 }) {
   const [editingPlayerId, setEditingPlayerId] = useState(null);
   const [editedScore, setEditedScore] = useState("");
@@ -25,6 +26,13 @@ export default function PlayersTable({
 
   const handleCancelEdit = () => {
     setEditingPlayerId(null);
+  };
+
+  const formatPassedShapes = (passedShapes) => {
+    if (!passedShapes || passedShapes.length === 0) {
+      return "-";
+    }
+    return passedShapes.join(", ");
   };
 
   return (
@@ -49,25 +57,27 @@ export default function PlayersTable({
             </svg>
             Players & Leaderboard
           </h2>
-          <button
-            onClick={onResetPlayers}
-            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm flex items-center"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-1"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {canResetPlayers && (
+            <button
+              onClick={onResetPlayers}
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm flex items-center"
             >
-              <path d="M23 4v6h-6"></path>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            Reset Players
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              Reset Players
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -77,6 +87,7 @@ export default function PlayersTable({
                 <th className="px-3 py-2 rounded-tl-md">Rank</th>
                 <th className="px-3 py-2">Username</th>
                 <th className="px-3 py-2">Score</th>
+                <th className="px-3 py-2">Passed Shapes</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 rounded-tr-md">Actions</th>
               </tr>
@@ -166,6 +177,11 @@ export default function PlayersTable({
                         </div>
                       )}
                     </td>
+                    <td className="px-3 py-2">
+                      <span className="text-xs text-gray-300">
+                        {formatPassedShapes(player.passedShapes)}
+                      </span>
+                    </td>
                     <td className="px-3 py-2 capitalize">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs ${
@@ -195,7 +211,7 @@ export default function PlayersTable({
               {players.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-3 py-6 text-center text-gray-400"
                   >
                     No players have joined yet

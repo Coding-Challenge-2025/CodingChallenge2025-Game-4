@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import socketService from "../services/socketService";
 import DashBoardHeader from "../components/host-dashboard/DashBoardHeader";
@@ -27,6 +27,8 @@ export default function HostDashboard() {
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState("");
+
+  const toastedHandled = useRef(false);
 
   useEffect(() => {
     socketService.registerHandlers({
@@ -73,12 +75,18 @@ export default function HostDashboard() {
         }
       },
       playersReset: (data) => {
+        if (toastedHandled.current) return;
+        toastedHandled.current = true;
+
         setPlayers(data.players);
         toast.info("All players have been reset.", {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
+          onClose: () => {
+            toastedHandled.current = false;
+          },
         });
       },
       settings_updated: (data) => {
@@ -104,6 +112,7 @@ export default function HostDashboard() {
     return () => {
       setIsLoading(false);
       socketService.clearHandlers();
+      toastedHandled.current = false;
     };
   }, [isLoading]);
 
@@ -196,6 +205,7 @@ export default function HostDashboard() {
             onKickPlayer={handleKickPlayer}
             onResetPlayers={handleResetPlayers}
             onEditScore={handleEditScore}
+            canResetPlayers={!room?.gameInProgress}
           />
 
           <SettingsPanel
