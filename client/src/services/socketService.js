@@ -295,6 +295,14 @@ class SocketService {
     }
   }
 
+  submitSolution(outputShape) {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit("submit_solution", { outputShape });
+    } else {
+      console.error("Cannot submit solution: Socket not connected");
+    }
+  }
+
   // Host dashboard actions
   adminCommand(command, data) {
     if (this.socket && this.socket.connected) {

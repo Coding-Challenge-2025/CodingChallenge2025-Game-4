@@ -1,8 +1,9 @@
 {
-  "socketId": "_kFXxPQsRa0IOJsVAAAO",
+  "socketId": "ExFdg9XyFy1HCF5mAAAG",
   "userId": 0,
   "username": "admin",
   "score": 0,
   "isHost": true,
-  "status": "waiting"
+  "status": "waiting",
+  "passedShapes": []
 }

@@ -171,13 +171,13 @@ class GameManager {
     }
 
     room.gameInProgress = false;
-    room.players.forEach((player) => {
-      if (!player.isHost) {
-        player.status = "waiting";
-        player.score = 0;
-        player.passedShapes = [];
-      }
-    });
+    // room.players.forEach((player) => {
+    //   if (!player.isHost) {
+    //     player.status = "waiting";
+    //     player.score = 0;
+    //     player.passedShapes = [];
+    //   }
+    // });
     clearInterval(room.timer);
     room.timer = null;
 
@@ -237,6 +237,25 @@ class GameManager {
     room.players.forEach((player) => {
       player.score = 0;
     });
+  }
+
+  resetAllPlayers(roomId) {
+    const room = this.getRoom(roomId);
+    if (!room) {
+      throw new Error(`Room ${roomId} does not exist`);
+    }
+
+    room.players.forEach((player) => {
+      player.status = "waiting";
+      player.score = 0;
+      player.passedShapes = [];
+    });
+
+    room.gameInProgress = false;
+    room.gameStartTime = null;
+    room.gameEndTime = null;
+    clearInterval(room.timer);
+    room.timer = null;
   }
 
   updatePlayerScore(roomId, playerId, newScore) {
