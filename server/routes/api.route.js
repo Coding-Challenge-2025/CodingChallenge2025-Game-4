@@ -4,6 +4,7 @@ const router = express.Router();
 import codeController from "../controllers/code.controller.js";
 import shapeController from "../controllers/shape.controller.js";
 import scoreController from "../controllers/score.controller.js";
+import audienceController from "../controllers/audience.controller.js";
 
 // Check session route
 router.get("/session", (req, res) => {
@@ -29,5 +30,8 @@ router.post("/session/start", (req, res) => {
     message: "New game session started",
   });
 });
+
+// Audience routes
+router.get("/audience/:playerId", audienceController.getCurrentShapeByUserId)
 
 export default router;
