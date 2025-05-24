@@ -55,7 +55,7 @@ const getShowcaseShapes = async (req, res) => {
 
   const filePath = path.join(
     __dirname,
-    `../data/currentShape/shape${shapeId}/${userId}.json`
+    `../data/outputShape/shape${shapeId}/${userId}.json`
   );
 
   if (!fs.existsSync(filePath)) {

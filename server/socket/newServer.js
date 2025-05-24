@@ -236,6 +236,13 @@ export default function setupSocketServer(io) {
         shapeId
       );
 
+      // write the current shape to file
+      writeCurrentShapeToFile(
+        socket.user.id, 
+        shapeId,
+        data.output 
+      );
+
       if (data.similarity === 100) {
         if (!isShapePassed) {
           gameManager.addShapeToPassedShapes(
@@ -583,10 +590,35 @@ function getGlobalRoomSettings() {
   }
 }
 
+function writeCurrentShapeToFile(playerId, shapeId, currentShape) {
+  const currentShapePath = path.join(
+    __dirname,
+    `../data/currentShape/${playerId}.json`
+  );
+
+  try {
+    fs.writeFileSync(
+      currentShapePath,
+      JSON.stringify(
+        {
+          playerId,
+          shapeId,
+          currentShape,
+        },
+        null,
+        2
+      )
+    );
+  } catch (error) {
+    console.error("Error writing current shape to file:", error);
+    throw new Error("Failed to write current shape");
+  }
+}
+
 function writeOutputShapeToFile(playerId, shapeId, outputShape) {
   const outputPath = path.join(
     __dirname,
-    `../data/currentShape/shape${shapeId}/${playerId}.json`
+    `../data/outputShape/shape${shapeId}/${playerId}.json`
   );
 
   try {
