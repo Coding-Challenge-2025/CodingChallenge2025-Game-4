@@ -1,9 +1,11 @@
 {
-  "socketId": "PDqlsSIzcbvNKci3AAAM",
+  "socketId": "-2dMZVFylwepDsyQAAAG",
   "userId": 1,
   "username": "player1",
-  "score": 0,
+  "score": 10,
   "isHost": false,
-  "status": "playing",
-  "passedShapes": []
+  "status": "waiting",
+  "passedShapes": [
+    1
+  ]
 }
