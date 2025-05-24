@@ -1,43 +1,55 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
+
+const baseURL =
+  import.meta.env.VITE_ENV === "production"
+    ? import.meta.env.VITE_PROD_BACKEND_HTTP
+    : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
 
 const Leaderboard = () => {
   const [visiblePlayers, setVisiblePlayers] = useState({
-    player2: false,
-    player4: false,
     player1: false,
+    player2: false,
     player3: false,
+    player4: false,
   });
 
-  const playersData = [
-    { name: "NHMinh", points: 22135, key: "1" },
-    { name: "NCChuong", points: 21340, key: "2" },
-    { name: "HDVu", points: 16952, key: "3" },
-    { name: "NHMTam", points: 12890, key: "4" },
-  ];
+  const [playersData, setPlayersData] = useState([]);
 
   useEffect(() => {
+    const fetchPlayersData = async () => {
+      try {
+        const response = await fetch(
+          new URL("/api/audience/leaderboard", baseURL)
+        );
+
+        console.log(
+          "Fetching leaderboard data from:",
+          new URL("/api/audience/leaderboard", baseURL).toString()
+        );
+
+        if (!response.ok) {
+          console.error("Failed to fetch leaderboard data");
+          return;
+        }
+        const data = await response.json();
+
+        console.log("Fetched leaderboard data:", data);
+        setPlayersData(data || []);
+      } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        return;
+      }
+    };
+
+    fetchPlayersData();
+
     const handleKeyPress = (event) => {
-      const playerKey = event.key;
-      if (playersData.some((player) => player.key === playerKey)) {
+      const key = event.key;
+      if (["1", "2", "3", "4"].includes(key)) {
+        const playerKey = `player${key}`;
         setVisiblePlayers((prev) => ({
           ...prev,
-          [playerKey === "1"
-            ? "player1"
-            : playerKey === "2"
-            ? "player2"
-            : playerKey === "3"
-            ? "player3"
-            : "player4"]:
-            !prev[
-              playerKey === "1"
-                ? "player1"
-                : playerKey === "2"
-                ? "player2"
-                : playerKey === "3"
-                ? "player3"
-                : "player4"
-            ],
+          [playerKey]: !prev[playerKey],
         }));
       }
     };
@@ -46,86 +58,50 @@ const Leaderboard = () => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
 
-  const rowVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-    exit: { opacity: 0, y: -50, transition: { duration: 0.3 } },
+  const getPlayerColor = (id) => {
+    switch (id) {
+      case 0:
+        return "bg-pink-100 border-4 border-pink-500 text-pink-500";
+      case 1:
+        return "bg-red-100 text-red-500";
+      case 2:
+        return "bg-orange-100 text-orange-500";
+      case 3:
+        return "bg-yellow-100 text-yellow-500";
+      default:
+        return "bg-gray-100 text-gray-500";
+    }
   };
 
   return (
     <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4 bg-[url('background.png')] bg-cover bg-center">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-yellow-600 mb-4 flex items-center justify-center">
-          <span className="mr-2"></span>VOXEL CODE LEADERBOARD{" "}
-          <span className="ml-2"></span>
+        <h2 className="text-2xl font-bold text-center text-yellow-600 mb-4">
+          🎮 VOXEL CODE LEADERBOARD
         </h2>
+
         <div className="space-y-2">
-          <AnimatePresence>
-            {playersData.map(
-              (player) =>
-                visiblePlayers[
-                  player.key === "1"
-                    ? "player1"
-                    : player.key === "2"
-                    ? "player2"
-                    : player.key === "3"
-                    ? "player3"
-                    : "player4"
-                ] && (
-                  <motion.div
-                    key={player.key}
-                    className={`p-3 rounded-md flex items-center justify-between ${
-                      player.key === "2"
-                        ? "bg-red-100"
-                        : player.key === "4"
-                        ? "bg-yellow-100"
-                        : player.key === "1"
-                        ? "bg-pink-100 border-4 border-pink-500"
-                        : "bg-orange-100"
-                    }`}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    variants={rowVariants}
-                  >
-                    <div className="flex items-center">
-                      <span
-                        className={`text-2xl mr-2 ${
-                          player.key === "2"
-                            ? "text-red-500"
-                            : player.key === "4"
-                            ? "text-yellow-500"
-                            : player.key === "1"
-                            ? "text-pink-500"
-                            : "text-orange-500"
-                        }`}
-                      >
-                        🎮
-                      </span>
-                      <div>
-                        <div className="font-semibold">{player.name}</div>
-                        {/* <div className="text-sm text-gray-600">
-                          Level {player.level} Lines: {player.lines}
-                        </div> */}
-                      </div>
+          {playersData.map((player, id) => {
+            const playerKey = `player${id + 1}`;
+            const colorClasses = getPlayerColor(id);
+
+            return (
+              visiblePlayers[playerKey] && (
+                <div
+                  key={player.playerName}
+                  className={`p-3 rounded-md flex items-center justify-between ${colorClasses}`}
+                >
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-2">🎮</span>
+                    <div>
+                      <div className="font-semibold">{player.playerName}</div>
                     </div>
-                    <div className="font-bold">{player.points} points</div>
-                  </motion.div>
-                )
-            )}
-          </AnimatePresence>
-        </div>
-        <div className="mt-4 p-3 bg-blue-50 rounded-md text-center">
-          <h3 className="font-semibold text-blue-600">Controls</h3>
-          <div className="text-sm text-gray-700">
-            Player 1st: 1
-            <br />
-            Player 2nd: 2
-            <br />
-            Player 3rd: 3
-            <br />
-            Player 4th: 4
-          </div>
+                  </div>
+                  <div className="font-bold">{player.score} points</div>
+                </div>
+              )
+            );
+          })}
         </div>
       </div>
     </div>
