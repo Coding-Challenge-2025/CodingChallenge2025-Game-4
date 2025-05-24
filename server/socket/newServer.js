@@ -147,6 +147,10 @@ export default function setupSocketServer(io) {
         }
 
         gameManager.endGame(GLOBAL_ROOM_ID);
+        saveGameResultsToFile(
+          GLOBAL_ROOM_ID,
+          gameManager.getGameResults(GLOBAL_ROOM_ID)
+        );
 
         // update all players in file
         const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
@@ -220,8 +224,8 @@ export default function setupSocketServer(io) {
       }
     });
 
-    socket.on("submit_solution", ({ outputShape }) => {
-      writeOutputShapeToFile(socket.user.id, outputShape);
+    socket.on("submit_solution", ({ shapeId, outputShape }) => {
+      writeOutputShapeToFile(socket.user.id, shapeId, outputShape);
       console.log(
         `Player ${socket.user.username} (${socket.user.id}) submitted solution`
       );
@@ -515,15 +519,26 @@ function getGlobalRoomSettings() {
   }
 }
 
-function writeOutputShapeToFile(playerId, outputShape) {
+function writeOutputShapeToFile(playerId, shapeId, outputShape) {
   const outputPath = path.join(
     __dirname,
     "../data/currentShape",
-    `${playerId}_output.json`
+    `${playerId}.json`
   );
 
   try {
-    fs.writeFileSync(outputPath, JSON.stringify(outputShape, null, 2));
+    fs.writeFileSync(
+      outputPath,
+      JSON.stringify(
+        {
+          playerId, 
+          shapeId,
+          outputShape,
+        },
+        null,
+        2
+      )
+    );
   } catch (error) {
     console.error("Error writing output shape to file:", error);
     throw new Error("Failed to write output shape");
@@ -555,6 +570,26 @@ function updateRoomSettingsFile(settings) {
   } catch (error) {
     console.error("Error writing room settings to file:", error);
     throw new Error("Failed to write room settings");
+  }
+}
+
+function saveGameResultsToFile(roomId, results) {
+  // save game results to a file with path "../data/gameResults/<timestamp>/<roomId>.json"
+  const resultsDir = path.join(__dirname, "../data/gameResults");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const resultsPath = path.join(resultsDir, timestamp, `${roomId}.json`);
+
+  // create the directory if it doesn't exist
+  if (!fs.existsSync(path.dirname(resultsPath))) {
+    fs.mkdirSync(path.dirname(resultsPath), { recursive: true });
+  }
+
+  // write the results to the file
+  try {
+    fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
+  } catch (error) {
+    console.error("Error writing game results to file:", error);
+    throw new Error("Failed to write game results");
   }
 }
 
