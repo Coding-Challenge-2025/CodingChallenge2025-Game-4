@@ -10,7 +10,7 @@ const getCurrentShapeByUserId = async (req, res) => {
 
   const filePath = path.join(
     __dirname,
-    "../data/currentShape/" + playerId + "_output.json"
+    "../data/currentShape/" + playerId + ".json"
   );
   
   console.log("filePath", filePath);

@@ -79,16 +79,73 @@ export default function Audience() {
     [1, 1, 1, 1, 5, 6, 7, 8, 9],
   ]);
 
+  // Fetch player grids every 2 seconds
+  useEffect(() => {
+    const fetchPlayerGrids = async () => {
+      for (let id = 1; id <= 4; id++) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/audience/${id}`
+          );
+          if (!response.ok) {
+            throw new Error(`Failed to fetch data for player ${id}`);
+          }
+          const data = await response.json();
+          // Assuming the API returns a grid in the format { grid: [...] }
+          const grid = data.outputShape || [];
+          if (Array.isArray(grid) && grid.length > 0) {
+            switch (id) {
+              case 1:
+                setPlayer1Grid(grid);
+                break;
+              case 2:
+                setPlayer2Grid(grid);
+                break;
+              case 3:
+                setPlayer3Grid(grid);
+                break;
+              case 4:
+                setPlayer4Grid(grid);
+                break;
+              default:
+                break;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching grid for player ${id}:`, error);
+        }
+      }
+    };
+
+    // Initial fetch
+    fetchPlayerGrids();
+
+    // Set up interval to fetch every 2 seconds
+    const interval = setInterval(fetchPlayerGrids, 2000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       <div className="grid grid-cols-2 grid-rows-2 h-screen relative">
         <div className="text-2xl rounded p-2 absolute top-[50%] left-[50%] translate-[-50%] z-30 grid grid-cols-1 grid-rows-1">
-          <p className={`text-center font-bold ${countdown > 60 ? 'text-black' : 'text-red-500'}`}>
+          <p
+            className={`text-center font-bold ${
+              countdown > 60 ? "text-black" : "text-red-500"
+            }`}
+          >
             {formatTime(countdown)}
           </p>
           <img src="logo.png" alt="" className="w-48" />
-          {(countdown <= 0) && (
-            <a href="/showcase" className="px-3 py-1 text-lg rounded-md text-white bg-blue-600 font-bold p-6 text-center">Go to result page</a>
+          {countdown <= 0 && (
+            <a
+              href="/showcase"
+              className="px-3 py-1 text-lg rounded-md text-white bg-blue-600 font-bold p-6 text-center"
+            >
+              Go to result page
+            </a>
           )}
         </div>
 
