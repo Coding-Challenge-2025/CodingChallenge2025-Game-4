@@ -74,7 +74,8 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4 bg-[url('background.png')] bg-cover bg-center">
+    <div className="min-h-screen bg-cream-100 flex items-center flex-col p-4 bg-[url('background.png')] bg-cover bg-center pt-10">
+      <img src="logos.png" alt="" className="w-[30rem] aspect-auto mb-4"/>
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 className="text-2xl font-bold text-center text-yellow-600 mb-4">
           🎮 VOXEL CODE LEADERBOARD
@@ -94,7 +95,7 @@ const Leaderboard = () => {
                   <div className="flex items-center">
                     <span className="text-2xl mr-2">🎮</span>
                     <div>
-                      <div className="font-semibold">{player.playerName}</div>
+                      <div className="font-semibold">{id + 1}. {player.playerName}</div>
                     </div>
                   </div>
                   <div className="font-bold">{player.score} points</div>
