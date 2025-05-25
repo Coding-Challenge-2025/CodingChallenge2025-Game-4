@@ -215,6 +215,7 @@ export default function setupSocketServer(io) {
             playerId: socket.user.id,
             playerName: player.username,
             score: data.score,
+            totalScore: player.score
           });
 
           io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
@@ -329,6 +330,7 @@ export default function setupSocketServer(io) {
             socket.emit("score_updated", {
               message: "Score updated successfully",
               score: updatedPlayer.score,
+              totalScore: updatedPlayer.score
             });
             io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
               message: "Scores have been updated",

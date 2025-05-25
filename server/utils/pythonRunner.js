@@ -28,6 +28,12 @@ const executePython = async (code) => {
       .split(/\r?\n/)
       .map(line => line.trim().split(/\s+/).map(Number));
 
+    for (let i = 0; i < matrix.length; i++) {
+      for (let j = 0; j < matrix[i].length; j++) {
+        matrix[i][j] ^= 987654321;
+      }
+    }
+
     return {
       output: matrix,
       error: result.stderr,

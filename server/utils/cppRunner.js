@@ -30,10 +30,20 @@ const executeCpp = async (code) => {
 
     // Parse the output to get the shape
     const rawOutput = result.stdout;
+
+    console.log("C++ raw output:", rawOutput);
+
     const matrix = rawOutput
       .trim()
       .split(/\r?\n/)
       .map(line => line.trim().split(/\s+/).map(Number));
+
+    for (let i = 0; i < matrix.length; i++) {
+      for (let j = 0; j < matrix[i].length; j++) {
+        // Apply the XOR operation with 987654321
+        matrix[i][j] ^= 987654321;
+      }
+    }
 
     return {
       output: matrix,

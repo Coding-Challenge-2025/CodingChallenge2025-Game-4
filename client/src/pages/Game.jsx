@@ -3,7 +3,7 @@ import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import GridComponent from "../components/GridComponent";
 import socketService from "../services/socketService";
-import { getCodeTemplate } from "../utils/code-template";
+import { getCodeTemplate, getCodeTemplateHeader, getCodeTemplateFooter } from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 
@@ -183,7 +183,7 @@ export default function Game() {
         gameEndedHandled.current = true;
 
         console.log("Game ended:", data);
-        localStorage.removeItem("shapeResults");
+        clearGameStorage();
 
         alert("Game has ended by the host. Redirecting...");
         const user = JSON.parse(localStorage.getItem("user"));
@@ -217,6 +217,11 @@ export default function Game() {
         }
       },
       scoreUpdated: (data) => {
+        if (data.totalScore) {
+          console.log("Total score updated:", data.totalScore);
+          setScore(data.totalScore);
+        }
+
         if (toastedHandled.current) return;
         toastedHandled.current = true;
 
@@ -236,6 +241,7 @@ export default function Game() {
       },
       scoresUpdated: (data) => {
         const currentPlayer = JSON.parse(localStorage.getItem("user"));
+        console.log("Player: ", data.players);
         const player = data.players.find(
           (player) => player.username === currentPlayer.username
         );
@@ -338,6 +344,7 @@ export default function Game() {
         ? import.meta.env.VITE_PROD_BACKEND_HTTP
         : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
 
+    const fullCode = getCodeTemplateHeader(language) + code + getCodeTemplateFooter(language);
     try {
       const response = await fetch(new URL("/api/code/execute", baseURL), {
         method: "POST",
@@ -347,7 +354,7 @@ export default function Game() {
         body: JSON.stringify({
           targetId: challengeId,
           language,
-          code,
+          code: fullCode,
         }),
       });
 
@@ -666,6 +673,18 @@ export default function Game() {
       </div>
     </main>
   );
+}
+
+function clearGameStorage() {
+  localStorage.removeItem("shapeResults");
+  localStorage.removeItem("code_cpp_1");
+  localStorage.removeItem("code_python_1");
+  localStorage.removeItem("code_cpp_2");
+  localStorage.removeItem("code_python_2");
+  localStorage.removeItem("code_cpp_3");
+  localStorage.removeItem("code_python_3");
+  localStorage.removeItem("code_cpp_4");
+  localStorage.removeItem("code_python_4");
 }
 
 function convertPlayersToContestants(players) {

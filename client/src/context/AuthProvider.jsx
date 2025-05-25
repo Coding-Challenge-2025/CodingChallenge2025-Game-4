@@ -34,6 +34,7 @@ export function AuthProvider({ children }) {
     import.meta.env.VITE_ENV === "production"
       ? import.meta.env.VITE_PROD_BACKEND_HTTP
       : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
+      
   const login = async (userData) => {
     setUser(userData);
 
