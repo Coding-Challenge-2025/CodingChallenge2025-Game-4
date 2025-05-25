@@ -1,11 +1,8 @@
 {
-  "socketId": "_IVJkm_0jYO8E3j3AAAG",
+  "socketId": "2K5NPfmvGgvaM4urAAAD",
   "userId": 1,
-  "username": "player1",
-  "score": 20,
+  "username": "Nguyễn Hoàng Minh",
+  "score": 0,
   "isHost": false,
-  "status": "playing",
-  "passedShapes": [
-    1
-  ]
+  "status": "waiting"
 }

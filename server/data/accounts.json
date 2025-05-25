@@ -3,30 +3,35 @@
     {
       "id": 0,
       "username": "admin",
+      "authname": "admin",
       "password": 123,
       "score": 0
     },
     {
       "id": 1,
-      "username": "player1",
+      "username": "Nguyễn Hoàng Minh",
+      "authname": "nhminh",
       "password": 123,
       "score": 0
     },
     {
       "id": 2,
-      "username": "player2",
+      "username": "Nguyễn Chánh Chương",
+      "authname": "ncchuong",
       "password": 123,
       "score": 0
     },
     {
       "id": 3,
-      "username": "player3",
+      "username": "Hoàng Duy Vũ",
+      "authname": "hdvu",
       "password": 123,
       "score": 0
     },
     {
       "id": 4,
-      "username": "player4",
+      "username": "Nguyễn Hoàng Minh Tâm",
+      "authname": "nhmtam",
       "password": 123,
       "score": 0
     }

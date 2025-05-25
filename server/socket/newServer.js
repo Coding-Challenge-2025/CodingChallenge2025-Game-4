@@ -479,11 +479,11 @@ function authenticateUser(username, password) {
     if (fs.existsSync(accountsPath)) {
       const data = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
       let user = data.users.find(
-        (user) => user.username.toLowerCase() === username.toLowerCase()
+        (user) => user.authname.toLowerCase() === username.toLowerCase()
       );
 
       if (user && user.password.toString() === password.toString()) {
-        const isHost = user.username.toLowerCase() === "admin";
+        const isHost = user.authname.toLowerCase() === "admin";
         user = {
           ...user,
           isHost,

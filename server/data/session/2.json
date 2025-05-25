@@ -1,8 +1,9 @@
 {
-  "socketId": null,
+  "socketId": "uyiBxmq07mQ8LtA_AAAT",
   "userId": 2,
-  "username": "player2",
-  "score": 0,
+  "username": "Nguyễn Chánh Chương",
+  "score": 10,
   "isHost": false,
-  "status": "waiting"
+  "status": "waiting",
+  "passedShapes": []
 }
