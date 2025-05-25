@@ -178,6 +178,7 @@ class GameManager {
     room.players.forEach((player) => {
       if (player.socketId !== room.hostId) {
         player.status = "waiting";
+        player.passedShapes = [];
       }
     });
   }

@@ -172,62 +172,6 @@ export default function setupSocketServer(io) {
       }
     });
 
-    // socket.on("shape_passed", ({ shapeId, score }) => {
-    //   console.log(
-    //     `Player ${socket.user.username} (${socket.user.id}) submitted shape ${shapeId}`
-    //   );
-
-    //   // user passed the shape
-    //   const checkValid = gameManager.checkShapePassed(
-    //     GLOBAL_ROOM_ID,
-    //     socket.user.id,
-    //     shapeId
-    //   );
-
-    //   if (checkValid) {
-    //     gameManager.addShapeToPassedShapes(
-    //       GLOBAL_ROOM_ID,
-    //       socket.user.id,
-    //       shapeId
-    //     );
-
-    //     const player = gameManager.findPlayerInRoom(
-    //       GLOBAL_ROOM_ID,
-    //       socket.user.id
-    //     );
-
-    //     if (player) {
-    //       console.log(
-    //         `Player ${player.username} passed shape ${shapeId} and got ${score} points`
-    //       );
-
-    //       player.score += score;
-    //       writePlayerDataToFile(player.userId, player);
-    //     }
-
-    //     socket.emit("score_updated", {
-    //       message: `You passed the shape ${shapeId} and got ${score} points`,
-    //       playerId: socket.user.id,
-    //       playerName: player.username,
-    //       score: score,
-    //     });
-
-    //     // io.to(GLOBAL_ROOM_ID).emit("shape_passed", {
-    //     //   shapeId,
-    //     //   playerId: socket.user.id,
-    //     //   playerName: socket.user.username,
-    //     // });
-
-    //     io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
-    //       message: "Scores have been updated",
-    //       playerId: socket.user.id,
-    //       playerName: player.username,
-    //       score: score,
-    //       players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
-    //     });
-    //   }
-    // });
-
     socket.on("submit_solution", ({ shapeId, data }) => {
       // check if shape is passed
       const isShapePassed = gameManager.checkShapePassed(

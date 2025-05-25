@@ -183,6 +183,8 @@ export default function Game() {
         gameEndedHandled.current = true;
 
         console.log("Game ended:", data);
+        localStorage.removeItem("shapeResults");
+
         alert("Game has ended by the host. Redirecting...");
         const user = JSON.parse(localStorage.getItem("user"));
         if (user) {
@@ -337,20 +339,17 @@ export default function Game() {
         : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
 
     try {
-      const response = await fetch(
-        new URL("/api/code/execute", baseURL),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            targetId: challengeId,
-            language,
-            code,
-          }),
-        }
-      );
+      const response = await fetch(new URL("/api/code/execute", baseURL), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetId: challengeId,
+          language,
+          code,
+        }),
+      });
 
       const data = await response.json();
       console.log("Code execution response:", data);
