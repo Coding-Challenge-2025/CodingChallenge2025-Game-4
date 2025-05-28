@@ -13,7 +13,7 @@ const defaultRoomSettings = {
   name: "Coding Challenge 2025",
   maxPlayers: 4,
   minPlayersToStart: 1,
-  gameDuration: 10,
+  gameDuration: 10.2,
 };
 
 export default function HostDashboard() {

@@ -1,8 +1,8 @@
 {
   "settings": {
-    "name": "Coding Challenge 2025",
+    "name": "Default Room",
     "maxPlayers": 4,
-    "minPlayersToStart": 2,
-    "gameDuration": 10.2
+    "minPlayersToStart": 1,
+    "gameDuration": 10
   }
 }

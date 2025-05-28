@@ -3,7 +3,11 @@ import GameHeader from "../components/GameHeader";
 import CodeEditor from "../components/CodeEditor";
 import GridComponent from "../components/GridComponent";
 import socketService from "../services/socketService";
-import { getCodeTemplate, getCodeTemplateHeader, getCodeTemplateFooter } from "../utils/code-template";
+import {
+  getCodeTemplate,
+  getCodeTemplateHeader,
+  getCodeTemplateFooter,
+} from "../utils/code-template";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 
@@ -326,14 +330,6 @@ export default function Game() {
     }
   };
 
-  const submitPassedStatus = (score) => {
-    socketService.submitPassedStatus(challengeId, score);
-    console.log("Shape passed status submitted:", {
-      shapeId: challengeId,
-      passed: true,
-    });
-  };
-
   const runCode = async () => {
     setIsRunning(true);
     setGameStatus("running");
@@ -344,7 +340,8 @@ export default function Game() {
         ? import.meta.env.VITE_PROD_BACKEND_HTTP
         : import.meta.env.VITE_BACKEND_HTTP ?? "http://localhost:3000";
 
-    const fullCode = getCodeTemplateHeader(language) + code + getCodeTemplateFooter(language);
+    const fullCode =
+      getCodeTemplateHeader(language) + code + getCodeTemplateFooter(language);
     try {
       const response = await fetch(new URL("/api/code/execute", baseURL), {
         method: "POST",
@@ -385,15 +382,6 @@ export default function Game() {
         // Handle code compilation or execution errors
         if (data.details) {
           setErrorDetails(data.details);
-          toast.error(`Code Error: ${data.details}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-          });
         } else if (data.message) {
           setErrorDetails(data.message);
           toast.error(`Execution failed: ${data.message}`, {

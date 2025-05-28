@@ -109,7 +109,7 @@ export default function SettingsPanel({
                 onChange={(e) =>
                   setRoomSettings({
                     ...roomSettings,
-                    gameDuration: Number.parseInt(e.target.value),
+                    gameDuration: Number.parseFloat(e.target.value),
                   })
                 }
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
