@@ -1,182 +1,169 @@
-import GameManger from "./gameManager.js";
-import codeController from "../controllers/code.controller.js";
-import scoreController from "../controllers/score.controller.js";
+import gameManager from "./gameManager.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  writePlayerDataToFile,
+  writeStartTimeToFile,
+  writeCurrentShapeToFile,
+  writeOutputShapeToFile,
+  saveGameResultsToFile,
+  saveLeaderboardToFile,
+  updateRoomSettingsFile,
+  getGlobalRoomSettingsFromFile,
+} from "../utils/fileIO.js";
+import { formatTime } from "../utils/helperFunc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const gameManager = new GameManger();
 const GLOBAL_ROOM_ID = "123456";
 
-// host account information
-let hostAccount = null;
-let roomSettings = null;
-let hostJoined = false;
+export default function setupSocketServer(io) {
+  // create global room on
+  createGlobalRoom();
 
-function loadHostAccount() {
-  try {
-    const hostAccountPath = path.join(__dirname, "../data/accounts/host.json");
-
-    if (!fs.existsSync(hostAccountPath)) {
-      console.error("Host account file not found:", hostAccountPath);
-      return null;
-    }
-
-    const data = JSON.parse(fs.readFileSync(hostAccountPath, "utf8"));
-    hostAccount = data.host;
-    roomSettings = data.roomSettings;
-  } catch (error) {
-    console.error("Error reading host account file:", error);
-    return null;
-  }
-}
-
-// Load the host account and room settings on server startup
-loadHostAccount();
-
-// Create the global room if it doesn't exist (but it's not active until the host joins)
-gameManager.createRoom(GLOBAL_ROOM_ID, {
-  name: roomSettings.name || "VoxelCode Arena",
-  isPrivate: false,
-  maxPlayers: roomSettings.maxPlayers || 5,
-  createdBy: "system",
-  creatorName: hostAccount.username || "System",
-  hostId: hostAccount?.id || "111",
-  isActive: false,
-});
-
-console.log(
-  `Global room created: ${GLOBAL_ROOM_ID} - ${roomSettings.name} (Max Players: ${roomSettings.maxPlayers})`
-);
-
-function setupSocketServer(io) {
-  // middleware for authentication with username
+  // middleware
   io.use((socket, next) => {
-    const username = socket.handshake.auth.username;
-    const password = socket.handshake.auth.password;
+    const { username, password } = socket.handshake.auth;
 
-    console.log("Authentication attempt:", username, password);
-
-    if (!username || !password) {
-      return next(
-        new Error("Authentication error: Username and password required")
-      );
-    }
-
-    // check if this is the host account
-    if (
-      hostAccount &&
-      username.toLowerCase() === hostAccount.username.toLowerCase()
-    ) {
-      if (Number(password) === hostAccount.password) {
-        socket.username = hostAccount.username;
-        socket.userId = hostAccount.id;
-        socket.isHost = true;
-        socket.userScore = -1; // Host account score is not tracked
-
-        return next();
-      }
-    }
-
-    // regular user authentication
     try {
       const user = authenticateUser(username, password);
-      if (!user) {
-        return next(
-          new Error("Authentication error: Invalid username or password")
-        );
-      }
-
-      // check if the host has joined
-      if (!hostJoined) {
-        return next(
-          new Error("Authentication error: waiting for host to join")
-        );
-      }
-
-      socket.username = user.username;
-      socket.userId = user.id;
-      socket.userScore = user.score || 0;
-      socket.isHost = false;
-
+      socket.user = user;
       next();
     } catch (error) {
-      return next(new Error("Authentication error: " + error.message));
+      console.error("Authentication failed:", error.message);
+      return next(new Error(error.message));
     }
   });
 
-  // connection handler
   io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.username} (${socket.userId})`);
+    // Check if the user is already in a room
+    console.log(
+      "User connected:",
+      socket.user.username,
+      socket.user.id,
+      socket.id
+    );
 
-    // check if this is the host
-    if (socket.isHost) {
-      hostJoined = true;
-      const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-      if (room) {
-        gameManager.assignHostToPlayer(GLOBAL_ROOM_ID, socket.id);
-        console.log(
-          `Host joined: ${socket.username} (${socket.userId}) - room is now active`
-        );
-      }
-    } else if (!hostJoined) {
-      socket.emit("error", {
-        message: "Cannot join room: Host has not joined yet",
-      });
-      socket.disconnect(true);
-
+    const globalRoom = gameManager.getRoom(GLOBAL_ROOM_ID);
+    if (!globalRoom) {
+      socket.emit("error", "Global room not found");
       return;
     }
 
-    // automatically join the global room
-    socket.join(GLOBAL_ROOM_ID);
+    try {
+      let player = checkPlayerExists(socket.id, socket.user);
+      socket.join(GLOBAL_ROOM_ID);
 
-    // add player to the global room
-    gameManager.addPlayerToRoom(GLOBAL_ROOM_ID, socket.id, {
-      id: socket.id,
-      username: socket.username,
-      userId: socket.userId,
-      score: socket.userScore,
-      isHost: socket.isHost || false,
-      status: "waiting",
-    });
+      const playerInRoom = gameManager.checkPlayerInRoom(
+        GLOBAL_ROOM_ID,
+        socket.user.id
+      );
+      if (!playerInRoom) {
+        // Add the player to the global room
+        gameManager.addPlayerToRoom(GLOBAL_ROOM_ID, socket.id, player);
+        writePlayerDataToFile(socket.user.id, player);
+      } else {
+        // Update the player socket ID
+        const oldSocketId = player.socketId;
 
-    // if this is the host, send welcome message
-    if (socket.isHost && roomSettings.welcomeMessage) {
-      setTimeout(() => {
-        io.to(GLOBAL_ROOM_ID).emit("new_message", {
-          sender: socket.username,
-          senderId: socket.id,
-          message: roomSettings.welcomeMessage,
-          timestamp: Date.now(),
-          isSystem: true,
-          isHost: true,
-        });
-      }, 1000);
+        console.log(`Reconnecting player: ${player}`);
+
+        // Update the socket ID in the global room
+        if (oldSocketId !== socket.id) {
+          console.log(
+            "Updating player socket ID:",
+            oldSocketId,
+            "to",
+            socket.id
+          );
+          const updatedPlayer = gameManager.updatePlayerInRoom(
+            GLOBAL_ROOM_ID,
+            oldSocketId,
+            {
+              ...player,
+              socketId: socket.id,
+            }
+          );
+
+          // Update JSON file for user
+          writePlayerDataToFile(socket.user.id, updatedPlayer);
+
+          socket.emit("reconnected", {
+            roomId: GLOBAL_ROOM_ID,
+            playerId: socket.user.id,
+          });
+        }
+      }
+    } catch (error) {
+      // console.error("Error during connection:", error);
+      socket.emit("error", error.message);
+      return;
     }
 
-    // notify client that they have joined the room
+    // Emit event to the client
     socket.emit("room_joined", {
       roomId: GLOBAL_ROOM_ID,
-      room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-      isHost: socket.isHost || false,
+      playerId: socket.user.id,
+      playerName: socket.user.username,
+      isHost: socket.user.isHost,
     });
 
-    // notify all players in the room about the new player
     io.to(GLOBAL_ROOM_ID).emit("player_joined", {
       player: {
         id: socket.id,
+        userId: socket.user.id,
         username: socket.username,
         isHost: socket.isHost || false,
       },
       room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
     });
 
+    socket.on("start_game", () => {
+      try {
+        const room = gameManager.getRoom(GLOBAL_ROOM_ID);
+
+        if (!socket.user.isHost) {
+          throw new Error("Only the host can start the game");
+        }
+
+        const minPlayers = room.minPlayers;
+        if (room.players.length < minPlayers) {
+          throw new Error(
+            `Not enough players to start the game. Minimum required: ${minPlayers}`
+          );
+        }
+
+        handleStartGame(room);
+      } catch (error) {
+        console.error("Error starting game:", error);
+        socket.emit("error", { message: error.message });
+      }
+    });
+
+    socket.on("end_game", () => {
+      try {
+        const room = gameManager.getRoom(GLOBAL_ROOM_ID);
+
+        if (!socket.user.isHost) {
+          console.error("Only the host can end the game");
+          throw new Error("Only the host can end the game");
+        }
+
+        handleEndgame(room);
+      } catch (error) {
+        console.error("Error ending game:", error);
+        socket.emit("error", { message: error.message });
+      }
+    });
+
+    socket.on("submit_solution", ({ shapeId, data }) => {
+      handleSubmitSolution(socket, shapeId, data);
+    });
+
     socket.on("admin_command", ({ command, data }) => {
-      if (!socket.isHost) {
+      if (!socket.user.isHost) {
         socket.emit("error", {
           message: "Only the host can execute admin commands",
         });
@@ -186,14 +173,29 @@ function setupSocketServer(io) {
       switch (command) {
         case "kick_player":
           if (data.playerId) {
-            console.log(
-              `Player kicked: ${data.playerName} (${data.playerId}) - Reason: ${data.reason}`
-            );
+            const playerSocket = io.sockets.sockets.get(data.playerId);
+            if (playerSocket) {
+              let player = gameManager.findPlayerInRoom(
+                GLOBAL_ROOM_ID,
+                data.playerId
+              );
+              if (player) {
+                player = {
+                  ...player,
+                  status: "waiting",
+                };
+                writePlayerDataToFile(player.userId, player);
+              }
+
+              playerSocket.emit("kicked", {
+                reason: data.reason || "You have been kicked by the host",
+              });
+              playerSocket.disconnect(true);
+            }
 
             io.to(GLOBAL_ROOM_ID).emit("player_kicked", {
-              playerId: data.playerId,
-              playerName: data.playerName,
-              reasion: data.reason || "You have been kicked by the host",
+              message: `Player ${data.playerName} has been kicked`,
+              players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
             });
           }
 
@@ -201,23 +203,64 @@ function setupSocketServer(io) {
 
         case "reset_scores":
           gameManager.resetAllScores(GLOBAL_ROOM_ID);
+          const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+
+          for (const player of players) {
+            writePlayerDataToFile(player.userId, player);
+          }
+
           io.to(GLOBAL_ROOM_ID).emit("scores_reset", {
-            players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+            message: "Scores have been reset",
+            players,
           });
+
+          break;
+
+        case "reset_players":
+          gameManager.resetAllPlayers(GLOBAL_ROOM_ID);
+          const resetPlayers = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+
+          for (const player of resetPlayers) {
+            writePlayerDataToFile(player.userId, player);
+          }
+
+          io.to(GLOBAL_ROOM_ID).emit("players_reset", {
+            message: "Players have been reset",
+            players: resetPlayers,
+          });
+
+          break;
+
+        case "update_score":
+          console.log(
+            `Updating score for player: ${data.playerId} to ${data.score}`
+          );
+          if (data.playerId && data.score) {
+            let updatedPlayer = gameManager.updatePlayerScore(
+              GLOBAL_ROOM_ID,
+              data.playerId,
+              data.score
+            );
+
+            writePlayerDataToFile(data.playerId, updatedPlayer);
+            socket.emit("score_updated", {
+              message: "Score updated successfully",
+              score: updatedPlayer.score,
+              totalScore: updatedPlayer.score,
+            });
+            io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+              message: "Scores have been updated",
+              players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+            });
+          }
 
           break;
 
         case "change_settings":
           if (data.settings) {
-            if (data.settings.name)
-              gameManager.updateRoomName(GLOBAL_ROOM_ID, data.settings.name);
-            if (data.settings.maxPlayers)
-              gameManager.updateMaxPlayers(
-                GLOBAL_ROOM_ID,
-                data.settings.maxPlayers
-              );
-
-            updateRoomSettings(data.settings);
+            console.log("Updating room settings:", data.settings);
+            gameManager.updateRoomSettings(GLOBAL_ROOM_ID, data.settings);
+            updateRoomSettingsFile(data.settings);
 
             io.to(GLOBAL_ROOM_ID).emit("settings_changed", {
               settings: data.settings,
@@ -227,245 +270,9 @@ function setupSocketServer(io) {
 
           break;
 
-        case "end_game":
-          gameManager.endGame(GLOBAL_ROOM_ID);
-          io.to(GLOBAL_ROOM_ID).emit("game_ended", {
-            message: "The game has ended by the host",
-            room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          });
-
-          break;
-
         default:
           socket.emit("error", { message: "Unknown command" });
           break;
-      }
-    });
-
-    socket.on("start_game", () => {
-      try {
-        const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-
-        if (!socket.isHost) {
-          throw new Error("Only the host can start the game");
-        }
-
-        // check if there are enough players to start the game
-        const minPlayers = roomSettings.minPlayersToStart || 2; // Minimum players to start the game
-        if (room.players.length < minPlayers) {
-          throw new Error(
-            `Not enough players to start the game. Minimum required: ${minPlayers}`
-          );
-        }
-
-        // start the game
-        gameManager.startGame(GLOBAL_ROOM_ID);
-        const roundDuration = (roomSettings.roundDuration || 3) * 60 * 1000;
-        const endTime = Date.now() + roundDuration;
-
-        // notify all players in the room
-        io.to(GLOBAL_ROOM_ID).emit("game_started", {
-          room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          endTime,
-        });
-
-        const timer = setInterval(() => {
-          const timeLeft = endTime - Date.now();
-
-          if (timeLeft <= 0) {
-            // stop the round
-            clearInterval(timer);
-            // gameManager.endRound(GLOBAL_ROOM_ID);
-
-            // handle round end
-            // const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
-            // updatePlayerScores(results.players);
-          } else {
-            // send time updates every second
-            if (timeLeft % 1000 < 100) {
-              io.to(GLOBAL_ROOM_ID).emit("time_update", {
-                timeLeft,
-                formattedTime: formatTime(timeLeft),
-              });
-            }
-          }
-        }, 100);
-
-        // store the timer reference
-        gameManager.setRoomTimer(GLOBAL_ROOM_ID, timer);
-      } catch (error) {
-        console.error("Error starting game:", error);
-        socket.emit("error", { message: error.message });
-      }
-    });
-
-    socket.on("end_game", () => {
-      try {
-        if (!socket.isHost) {
-          throw new Error("Only the host can end the game");
-        }
-
-        gameManager.endGame(GLOBAL_ROOM_ID);
-        io.to(GLOBAL_ROOM_ID).emit("game_ended", {
-          message: "The game has ended by the host",
-          room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-        });
-      } catch (error) {
-        console.error("Error ending game:", error);
-        socket.emit("error", { message: error.message });
-      }
-    });
-
-    socket.on("submit_solution", async ({ code, language }) => {
-      try {
-        const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-
-        if (!room) {
-          throw new Error("Room not found");
-        }
-
-        if (!room.gameInProgress) {
-          throw new Error("Game is not in progress");
-        }
-
-        const result = await codeController.executeCode(code, language);
-
-        if (!result.success) {
-          throw new Error("Code execution failed: " + result.message);
-        }
-
-        const score = await scoreController.calculateSimilarity(
-          result.output,
-          room.currentShape
-        );
-        gameManager.updatePlayerScore(
-          GLOBAL_ROOM_ID,
-          socket.id,
-          score.score,
-          result.shape
-        );
-
-        // notify the result to the player
-        socket.emit("solution_submitted", {
-          success: true,
-          score: score.score,
-          shape: result.shape,
-        });
-
-        // notify all players in the room about the score update
-        io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
-          players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
-        });
-
-        if (
-          score.score === 100 ||
-          gameManager.allPlayersSubmitted(GLOBAL_ROOM_ID)
-        ) {
-          clearInterval(room.timer);
-          gameManager.endRound(GLOBAL_ROOM_ID);
-
-          // handle round end
-          const results = gameManager.getRoundResults(GLOBAL_ROOM_ID);
-          updatePlayerScores(results.players);
-
-          io.to(GLOBAL_ROOM_ID).emit("round_ended", {
-            results,
-            room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          });
-        }
-      } catch (error) {
-        socket.emit("error", { message: error.message });
-      }
-    });
-
-    socket.on("send_message", ({ message }) => {
-      if (!message.trim()) {
-        throw new Error("Message cannot be empty");
-      }
-
-      io.to(GLOBAL_ROOM_ID).emit("new_message", {
-        sender: socket.username,
-        senderId: socket.id,
-        message,
-        timeStamp: Date.now(),
-        isHost: socket.isHost || false,
-      });
-    });
-
-    // Request available shapes
-    socket.on("request_available_shapes", () => {
-      // Only host can request shapes
-      if (!socket.isHost) {
-        socket.emit("error", {
-          message: "Unauthorized: Host privileges required",
-        });
-        return;
-      }
-
-      try {
-        // Get available shapes from the shapes directory
-        const shapesDir = path.join(__dirname, "../data/shapes");
-
-        const shapeFiles = fs
-          .readdirSync(shapesDir)
-          .filter((file) => file.startsWith("shape") && file.endsWith(".txt"))
-          .map((file) =>
-            Number.parseInt(file.replace("shape", "").replace(".txt", ""))
-          )
-          .sort((a, b) => a - b);
-
-        socket.emit("available_shapes", { shapes: shapeFiles });
-      } catch (error) {
-        socket.emit("error", { message: "Error fetching available shapes" });
-      }
-    });
-
-    // Send system message
-    socket.on("send_system_message", ({ message }) => {
-      // Only host can send system messages
-      if (!socket.isHost) {
-        socket.emit("error", {
-          message: "Unauthorized: Host privileges required",
-        });
-        return;
-      }
-
-      if (!message.trim()) return;
-
-      io.to(GLOBAL_ROOM_ID).emit("new_message", {
-        sender: "System",
-        senderId: "system",
-        message,
-        timestamp: Date.now(),
-        isSystem: true,
-        isHost: true,
-      });
-    });
-
-    socket.on("disconnect", () => {
-      // console.log(`User disconnected: ${socket.username} (${socket.userId})`);
-      gameManager.removePlayerFromRoom(GLOBAL_ROOM_ID, socket.id);
-
-      // notify all players in the room about the disconnection
-      io.to(GLOBAL_ROOM_ID).emit("player_disconnected", {
-        playerId: socket.id,
-        playerName: socket.username,
-        room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-      });
-
-      // if the host disconnects, end the game
-      if (socket.isHost) {
-        hostJoined = false;
-        const room = gameManager.getRoom(GLOBAL_ROOM_ID);
-        if (room) {
-          io.to(GLOBAL_ROOM_ID).emit("host_left", {
-            message: "The host has left the game. The game has ended.",
-            room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
-          });
-
-          // disconnect all players
-          io.in(GLOBAL_ROOM_ID).disconnectSockets(true);
-        }
       }
     });
 
@@ -475,146 +282,252 @@ function setupSocketServer(io) {
         room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
       });
     });
-  });
-}
 
-function handleNewRound(roomId) {
-  const room = gameManager.getRoom(roomId);
-  if (!room) {
-    throw new Error(`Room ${roomId} does not exist`);
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.id);
+
+      const player = gameManager
+        .getPlayersInRoom(GLOBAL_ROOM_ID)
+        .find((player) => player.socketId === socket.id);
+
+      if (!player) {
+        console.log("Player not found in the room");
+        return;
+      }
+
+      gameManager.removePlayerFromRoom(GLOBAL_ROOM_ID, socket.id);
+      writePlayerDataToFile(player.userId, {
+        ...player,
+        socketId: null,
+      });
+
+      // notify all players in the room about the disconnection
+      io.to(GLOBAL_ROOM_ID).emit("player_disconnected", {
+        playerId: socket.id,
+        playerName: socket.username,
+        room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+      });
+    });
+  });
+
+  function handleStartGame(room) {
+    console.log("Starting game in room:", room.id);
+    // check for existing timer
+    const existingTimer = gameManager.getRoomTimer(GLOBAL_ROOM_ID);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+      gameManager.clearInterval(GLOBAL_ROOM_ID);
+    }
+
+    // start the game
+    gameManager.startGame(GLOBAL_ROOM_ID);
+    for (const player of room.players) {
+      writePlayerDataToFile(player.userId, player);
+      writeStartTimeToFile();
+    }
+
+    const gameDuration = room.gameDuration * 60 * 1000;
+    const endTime = Date.now() + gameDuration;
+
+    // notify all players in the room
+    io.to(GLOBAL_ROOM_ID).emit("game_started", {
+      room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+      endTime,
+    });
+
+    const timer = setInterval(() => {
+      const timeLeft = endTime - Date.now();
+
+      if (timeLeft <= 0) {
+        // stop the round
+        clearInterval(timer);
+
+        // end game
+        // Auto-end the game when timer expires
+        gameManager.endGame(GLOBAL_ROOM_ID);
+        io.to(GLOBAL_ROOM_ID).emit("game_ended", {
+          message: "Time's up! The game has ended.",
+          room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+        });
+      } else {
+        // send time updates every second
+        if (timeLeft % 1000 < 100) {
+          io.to(GLOBAL_ROOM_ID).emit("time_update", {
+            timeLeft,
+            formattedTime: formatTime(timeLeft),
+          });
+        }
+      }
+    }, 100);
+
+    // store the timer reference
+    gameManager.setRoomTimer(GLOBAL_ROOM_ID, timer);
   }
 
-  const shape = gameManager.generateShapeForRoom(roomId);
-  const duration = (roomSettings.roundDuration || 3) * 60 * 1000; // Default round duration in milliseconds
-  const endTime = Date.now() + duration;
+  function handleEndgame(room) {
+    console.log("Ending game in room:", room.id);
+    // Clear the timer before ending the game
+    const existingTimer = gameManager.getRoomTimer(GLOBAL_ROOM_ID);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+      gameManager.clearRoomTimer(GLOBAL_ROOM_ID);
+    }
 
-  gameManager.setGameTimer(roomId, endTime);
+    gameManager.endGame(GLOBAL_ROOM_ID);
+    saveGameResultsToFile(
+      GLOBAL_ROOM_ID,
+      gameManager.getGameResults(GLOBAL_ROOM_ID)
+    );
 
-  // notify all players in the room
-  io.to(roomId).emit("new_round_started", {
-    room: gameManager.getRoomDetails(roomId),
-    shape,
-    endTime,
-  });
+    const leaderboard = gameManager.getGameLeaderboard(GLOBAL_ROOM_ID);
+    saveLeaderboardToFile(leaderboard);
 
-  const timer = setInterval(() => {
-    const timeLeft = endTime - Date.now();
+    // update all players in file
+    const players = gameManager.getPlayersInRoom(GLOBAL_ROOM_ID);
+    for (const player of players) {
+      writePlayerDataToFile(player.userId, player);
+    }
 
-    if (timeLeft <= 0) {
-      // stop the round
-      clearInterval(timer);
-      gameManager.endRound(roomId);
+    io.to(GLOBAL_ROOM_ID).emit("game_ended", {
+      message: "The game has ended by the host",
+      room: gameManager.getRoomDetails(GLOBAL_ROOM_ID),
+    });
+  }
 
-      // handle round end
-      const results = gameManager.getRoundResults(roomId);
-      updatePlayerScores(results.players);
+  function handleSubmitSolution(socket, shapeId, data) {
+    // check if shape is passed
+    const isShapePassed = gameManager.checkShapePassed(
+      GLOBAL_ROOM_ID,
+      socket.user.id,
+      shapeId
+    );
 
-      // notify all players in the room that the round has ended
-      io.to(roomId).emit("round_ended", {
-        results,
-        room: gameManager.getRoomDetails(roomId),
-      });
+    // write the current shape to file --> update audience view
+    writeCurrentShapeToFile(socket.user.id, shapeId, data.output);
+
+    if (data.similarity === 100) {
+      if (!isShapePassed) {
+        gameManager.addShapeToPassedShapes(
+          GLOBAL_ROOM_ID,
+          socket.user.id,
+          shapeId
+        );
+        // store the latest shape (or passed shape) in the output folder
+        writeOutputShapeToFile(socket.user.id, shapeId, data.output);
+
+        const player = gameManager.findPlayerInRoom(
+          GLOBAL_ROOM_ID,
+          socket.user.id
+        );
+
+        if (player) {
+          console.log(
+            `Player ${player.username} passed shape ${shapeId} and got ${data.score} points`
+          );
+
+          player.score += data.score;
+          writePlayerDataToFile(player.userId, player);
+        }
+
+        socket.emit("score_updated", {
+          message: `You passed the shape ${shapeId} and got ${data.score} points`,
+          playerId: socket.user.id,
+          playerName: player.username,
+          score: data.score,
+          totalScore: player.score,
+        });
+
+        io.to(GLOBAL_ROOM_ID).emit("scores_updated", {
+          message: "Scores have been updated",
+          playerId: socket.user.id,
+          playerName: player.username,
+          score: data.score,
+          players: gameManager.getPlayersInRoom(GLOBAL_ROOM_ID),
+        });
+      }
     } else {
-      // send time updates every second
-      if (timeLeft % 1000 < 100) {
-        io.to(roomId).emit("time_update", {
-          timeLeft,
-          formattedTime: formatTime(timeLeft),
+      if (!isShapePassed) {
+        console.log(
+          `Player ${socket.user.username} (${socket.user.id}) submitted solution for shape ${shapeId} with similarity ${data.similarity}`
+        );
+
+        // write the output shape to file
+        writeOutputShapeToFile(socket.user.id, shapeId, data.output);
+      } else {
+        socket.emit("error", {
+          message: `You cannot resubmit a solution for shape ${shapeId} as you have already passed it`,
         });
       }
     }
-  }, 100);
-
-  // store the timer reference
-  gameManager.setRoomTimer(roomId, timer);
+  }
 }
 
-// update room settings in host.json
-function updateRoomSettings(newSettings) {
-  try {
-    const hostAccountPath = path.join(__dirname, "../data/accounts/host.json");
+function checkPlayerExists(socketId, player) {
+  // check if there is any <playerId>.json file in the session folder
+  const playerPath = path.join(
+    __dirname,
+    "../data/session",
+    `${player.id}.json`
+  );
 
-    if (!fs.existsSync(hostAccountPath)) {
-      console.error("Host account file not found:", hostAccountPath);
-      return;
-    }
-
-    const hostData = JSON.parse(fs.readFileSync(hostAccountPath, "utf8"));
-
-    hostData.roomSettings = {
-      ...hostData.roomSettings,
-      ...newSettings,
+  if (fs.existsSync(playerPath)) {
+    const data = JSON.parse(fs.readFileSync(playerPath, "utf8"));
+    return {
+      ...data,
+      socketId: socketId,
     };
-
-    fs.writeFileSync(
-      hostAccountPath,
-      JSON.stringify(hostData, null, 2),
-      "utf8"
-    );
-
-    roomSettings = hostData.roomSettings; // Update the in-memory settings
-  } catch (error) {
-    console.error("Error updating room settings:", error);
   }
+
+  return {
+    socketId: socketId,
+    userId: player.id,
+    username: player.username,
+    score: 0,
+    isHost: player.isHost,
+    status: player.isHost ? "controlling" : "waiting",
+  };
 }
 
 function authenticateUser(username, password) {
   try {
-    const accountsPath = path.join(__dirname, "../data/accounts/accounts.json");
+    const accountsPath = path.join(__dirname, "../data/accounts.json");
 
-    if (!fs.existsSync(accountsPath)) {
-      console.error("Accounts file not found:", accountsPath);
+    if (fs.existsSync(accountsPath)) {
+      const data = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
+      let user = data.users.find(
+        (user) => user.authname.toLowerCase() === username.toLowerCase()
+      );
 
-      return null;
-    }
+      if (user && user.password.toString() === password.toString()) {
+        const isHost = user.authname.toLowerCase() === "admin";
+        user = {
+          ...user,
+          isHost,
+        };
 
-    const data = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
-    const user = data.users.find(
-      (user) => user.username.toLowerCase() === username.toLowerCase()
-    );
-    if (!user || user.password != password) {
-      console.error("Invalid username or password:", username);
-      return null; // Invalid username or password
-    }
-
-    return user;
-  } catch (error) {
-    console.error("Error reading accounts file:", error);
-    return null;
-  }
-}
-
-function updatePlayerScores(players) {
-  try {
-    const accountsPath = path.join(__dirname, "../data/accounts/accounts.json");
-    const data = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
-
-    let updated = false;
-    players.forEach((player) => {
-      if (!player.userId) return;
-
-      const user = data.users.find((user) => (user.id = player.userId));
-      if (user) {
-        if (!user.score || player.score > user.score) {
-          user.score = player.score;
-          updated = true;
-        }
+        return user;
+      } else {
+        throw new Error("Invalid username or password");
       }
-    });
-
-    if (updated) {
-      fs.writeFileSync(accountsPath, JSON.stringify(data, null, 2), "utf8");
+    } else {
+      throw new Error("Accounts file not found");
     }
   } catch (error) {
-    console.error("Error updating player scores:", error);
+    throw new Error(error.message);
   }
 }
 
-function formatTime(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+function createGlobalRoom() {
+  try {
+    const globalRoomConfig = getGlobalRoomSettingsFromFile();
+    gameManager.createRoom(GLOBAL_ROOM_ID, {
+      ...globalRoomConfig,
+      createdBy: "system",
+      creatorName: "system",
+      hostId: "000",
+      isActive: true,
+    });
+  } catch (error) {
+    console.error("Error creating global room:", error);
+  }
 }
-
-export default setupSocketServer;

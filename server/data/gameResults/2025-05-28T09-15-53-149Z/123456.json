@@ -1,0 +1,18 @@
+{
+  "roomId": "123456",
+  "gameEndTime": null,
+  "players": [
+    {
+      "userId": 3,
+      "username": "Hoàng Duy Vũ",
+      "score": 10,
+      "passedShapes": []
+    },
+    {
+      "userId": 0,
+      "username": "admin",
+      "score": 0,
+      "passedShapes": []
+    }
+  ]
+}

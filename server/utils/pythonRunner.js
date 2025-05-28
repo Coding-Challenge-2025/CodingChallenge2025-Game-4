@@ -1,92 +1,123 @@
-import { spawn, exec } from "child_process";
-import fs from "fs";
+import { spawn } from "child_process";
+import fs from "fs/promises"; // Using promises API
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import os from "os";
+import { encriptMatrix, parseOutputToMatrix } from "./helperFunc.js";
 
-const executePython = async (code) => {
-  // Create a temporary directory for code execution
-  const tempDir = path.join(os.tmpdir(), "voxelcode", uuidv4());
-  fs.mkdirSync(tempDir, { recursive: true });
+const TEMP_DIR_PREFIX = "voxelcode";
+const PYTHON_FILENAME = "code.py";
+const DEFAULT_PYTHON_COMMAND = "py"; 
+const DEFAULT_EXECUTION_TIMEOUT_MS = 5000; 
 
-  // Create a temporary Python file
-  const pythonFile = path.join(tempDir, "code.py");
+/**
+ * Creates a temporary directory and Python file path.
+ * @returns {Promise<{tempDir: string, pythonFilePath: string}>}
+ */
+async function createTemporaryPythonFileStructure() {
+  const tempDir = path.join(os.tmpdir(), TEMP_DIR_PREFIX, uuidv4());
+  await fs.mkdir(tempDir, { recursive: true });
+  const pythonFilePath = path.join(tempDir, PYTHON_FILENAME);
+  return { tempDir, pythonFilePath };
+}
 
-  try {
-    // Wrap the user code to capture the output
-    fs.writeFileSync(pythonFile, code);
-
-    // Execute the Python code
-    const startTime = Date.now();
-    const result = await runPythonProcess(pythonFile);
-    const executionTime = Date.now() - startTime;
-
-    // Parse the output to get the shape
-    const rawOutput = result.stdout;
-    const matrix = rawOutput
-      .trim()
-      .split(/\r?\n/)
-      .map(line => line.trim().split(/\s+/).map(Number));
-
-    for (let i = 0; i < matrix.length; i++) {
-      for (let j = 0; j < matrix[i].length; j++) {
-        matrix[i][j] ^= 987654321;
-      }
-    }
-
-    return {
-      output: matrix,
-      error: result.stderr,
-      executionTime,
-    };
-  } catch (error) {
-    console.error("Python execution error:", error);
-    throw error;
-  } finally {
-    // Clean up temporary files
-    try {
-      fs.unlinkSync(pythonFile);
-      fs.rmdirSync(tempDir, { recursive: true });
-    } catch (err) {
-      console.error("Error cleaning up temporary files:", err);
-    }
-  }
-};
-
-function runPythonProcess(filePath) {
+/**
+ * Runs a Python script and captures its stdout/stderr.
+ * @param {string} filePath - Path to the Python script.
+ * @param {string} pythonCommand - The command to execute Python (e.g., 'python', 'py', 'python3').
+ * @param {number} timeoutMs - Execution timeout in milliseconds.
+ * @returns {Promise<{stdout: string, stderr: string}>}
+ */
+function runPythonProcess(filePath, pythonCommand, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const python = spawn("py", [filePath]);
+    const pythonProcess = spawn(pythonCommand, [filePath]);
 
     let stdout = "";
     let stderr = "";
 
-    python.stdout.on("data", (data) => {
+    pythonProcess.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    python.stderr.on("data", (data) => {
+    pythonProcess.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    python.on("close", (code) => {
+    const timeoutId = setTimeout(() => {
+      pythonProcess.kill("SIGTERM"); // Send SIGTERM first
+      // Wait a moment before rejecting, to allow stderr to be captured if process logs on kill
+      setTimeout(() => reject(new Error("Python execution timed out")), 100);
+    }, timeoutMs);
+
+    pythonProcess.on("close", (code) => {
+      clearTimeout(timeoutId);
       if (code !== 0) {
-        reject(new Error(`Python process exited with code ${code}: ${stderr}`));
+        resolve({
+          stdout,
+          stderr: stderr || `Python process exited with code ${code}`,
+        });
       } else {
         resolve({ stdout, stderr });
       }
     });
 
-    // Set a timeout to kill the process if it takes too long
-    const timeout = setTimeout(() => {
-      python.kill();
-      reject(new Error("Python execution timed out"));
-    }, 5000); // 5 second timeout
-
-    python.on("close", () => {
-      clearTimeout(timeout);
+    pythonProcess.on("error", (err) => {
+      clearTimeout(timeoutId);
+      reject(
+        new Error(`Python process failed to start or crashed: ${err.message}`)
+      );
     });
   });
 }
+
+/**
+ * Executes Python code, parses its output into a matrix, and applies XOR transformation.
+ * @param {string} code - The Python code to execute.
+ * @param {string} [pythonCommand=DEFAULT_PYTHON_COMMAND] - The Python interpreter command.
+ * @param {number} [timeoutMs=DEFAULT_EXECUTION_TIMEOUT_MS] - Execution timeout in milliseconds.
+ * @returns {Promise<{output: number[][], error: string, executionTime: number}>}
+ */
+const executePython = async (
+  code,
+  pythonCommand = DEFAULT_PYTHON_COMMAND,
+  timeoutMs = DEFAULT_EXECUTION_TIMEOUT_MS
+) => {
+  let filePaths = null;
+  try {
+    filePaths = await createTemporaryPythonFileStructure();
+    const { tempDir, pythonFilePath } = filePaths;
+
+    await fs.writeFile(pythonFilePath, code);
+
+    const startTime = Date.now();
+    const result = await runPythonProcess(
+      pythonFilePath,
+      pythonCommand,
+      timeoutMs
+    );
+    const executionTime = Date.now() - startTime;
+    const matrix = parseOutputToMatrix(result.stdout);
+
+    return {
+      output: encriptMatrix(matrix),
+      error: result.stderr.trim(), // Python script's stderr
+      executionTime,
+    };
+  } catch (error) {
+    throw new Error(`Python execution pipeline failed: ${error.message}`);
+  } finally {
+    if (filePaths && filePaths.tempDir) {
+      try {
+        await fs.rm(filePaths.tempDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error(
+          "Error cleaning up temporary Python files:",
+          cleanupError
+        );
+      }
+    }
+  }
+};
 
 export default {
   executePython,

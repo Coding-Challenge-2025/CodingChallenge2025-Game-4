@@ -22,26 +22,10 @@ router.get("/shapes", shapeController.getAllShapes);
 // Score routes
 router.post("/score/compare", scoreController.compareShapes);
 
-// Game session routes
-router.post("/session/start", (req, res) => {
-  // Create a new game session
-  res.json({
-    sessionId: Date.now().toString(),
-    message: "New game session started",
-  });
-});
-
 // Audience routes
 router.get("/audience/startTime", audienceController.getGameStartTime);
 router.get("/audience/showcase", audienceController.getShowcaseShapes);
 router.get("/audience/leaderboard", audienceController.getLeaderboard);
 router.get("/audience/:playerId", audienceController.getCurrentShapeByUserId)
-
-// Showcase routes
-// router.get("/audience/showcase/", showcaseRouter.getShowcaseShapes); // query params: ?userId=1&shapeId=2 return { output: [[1, 2, 3], [4, 5, 6]] }
-
-// Leaderboard routes
-// router.get("/audience/leaderboard", leaderboardRouter.getLeaderboard); // return { leaderboard: [{ userId: 1, username: a, score: 100 }, { userId: 2, username: b, score: 90 }] }
-
 
 export default router;

@@ -131,10 +131,6 @@ class GameManager {
       throw new Error(`Room ${roomId} does not exist`);
     }
 
-    // print all players id in the room
-    const playerIds = room.players.map((player) => player.userId);
-    // console.log("Player IDs in room:", playerIds);
-
     const player = room.players.find((player) => player.userId === playerId);
     return player || null;
   }
@@ -178,7 +174,6 @@ class GameManager {
     room.players.forEach((player) => {
       if (player.socketId !== room.hostId) {
         player.status = "waiting";
-        player.passedShapes = [];
       }
     });
   }
@@ -342,10 +337,6 @@ class GameManager {
       throw new Error(`Room ${roomId} does not exist`);
     }
 
-    // if (!room.gameInProgress) {
-    //   throw new Error(`Game in room ${roomId} is not in progress`);
-    // }
-
     const playersResult = room.players.map((player) => ({
       userId: player.userId,
       username: player.username,
@@ -381,4 +372,5 @@ class GameManager {
   }
 }
 
-export default GameManager;
+const gameManager = new GameManager();
+export default gameManager;
