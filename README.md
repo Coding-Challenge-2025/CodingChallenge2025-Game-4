@@ -20,11 +20,6 @@ The main interface consists of three areas:
 2.  **Problem Display Tab:** Shows the original block in a 3D view for contestants to reference.
 3.  **Result Display Tab:** Shows the simulated block generated from the contestant's code, along with a comparison result against the original block.
 
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) (version X.X.X or higher)
-- [Other dependencies, e.g., Python, etc.]
-
 ## Setup
 
 Clone the repository and install dependencies for both client and server:
