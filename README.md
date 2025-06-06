@@ -17,7 +17,7 @@
 **Game Interface:**
 The main interface consists of three areas:
 1.  **Code Editor:** Area for contestants to write their source code. A function template is provided. Contestants must complete this template to return a 2D matrix as described in the problem.
-2.  **Problem Display Tab:** Shows the original block in a 2.5D view for contestants to reference.
+2.  **Problem Display Tab:** Shows the original block in a 3D view for contestants to reference.
 3.  **Result Display Tab:** Shows the simulated block generated from the contestant's code, along with a comparison result against the original block.
 
 ## Prerequisites
