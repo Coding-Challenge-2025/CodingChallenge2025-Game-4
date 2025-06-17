@@ -20,6 +20,12 @@ The main interface consists of three areas:
 2.  **Problem Display Tab:** Shows the original block in a 2.5D view for contestants to reference.
 3.  **Result Display Tab:** Shows the simulated block generated from the contestant's code, along with a comparison result against the original block.
 
+**Frontend Routes**
+- **/**: log in as player or host
+- **/audience**: for watching players' current shapes in semi-realtime
+- **/showcase**: for revealing the original shape and players' shapes (reachable via /audience)
+- **/leaderboard**: for the game results (reachable via /showcase)
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (version X.X.X or higher)
